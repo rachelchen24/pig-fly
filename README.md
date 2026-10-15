@@ -87,3 +87,9 @@ Static hosts serve every file in the repo, so `SPEC.md` and `NOTES.md` will be p
 ### Other static hosts
 
 Netlify, GitHub Pages and similar hosts can serve `index.html` as is. There's no save server there, so it's browser saves only.
+
+## Copyright
+
+© 2026 Rachel Chen. All rights reserved.
+
+If you plagiarize my work I will find you!!! 🐷
