@@ -16,6 +16,7 @@ It's inspired by *Learn to Fly* (Light Bringer Games, 2009). The whole game is o
 | **↑ / ↓** | Tilt the pig's nose up or down |
 | **Space** (hold) | Fire rockets, once you've bought them |
 | **Enter** | Launch, from the shop |
+| **Esc** | End the current flight early (or click **End run**) |
 | Mouse | Menus and the shop |
 
 ### How it works

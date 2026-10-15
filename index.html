@@ -100,6 +100,8 @@
   .acct-msg { min-height: 20px; color: #c62828; font-weight: bold; margin-bottom: 8px; }
   .reccode { font-size: 32px; font-weight: bold; letter-spacing: 4px; text-align: center; padding: 12px; margin: 10px 0; background: #fff; border: 3px dashed #f5b800; border-radius: 12px; user-select: all; }
   .lb { width: min(380px, calc(100vw - 32px)); max-height: 40vh; overflow-y: auto; }
+  .endrun { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; padding: 8px 14px; font-size: 15px; opacity: 0.9; }
+  .endrun .key { margin-left: 4px; }
   /* main menu: leaderboards on both sides, menu in the middle; stacked under the menu when narrow */
   .menuwrap { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; justify-items: center; gap: 24px; padding: 16px; overflow-y: auto; }
   .menuwrap .menumid { text-align: center; }
@@ -1886,6 +1888,14 @@ function beginFlight() {
   screen = 'flight';
   if (launchEq.launchRig) debris.push({ kind: 'rig', t: launchEq.launchRig, x: flight.x, y: flight.y - 0.6, vx: flight.vx * 0.55, vy: flight.vy * 0.4, a: 0, va: -3 });
   tutEvent('flightStart');
+  // End run: stop a flight early (Esc does the same). mousedown is cancelled so the button never takes focus,
+  // otherwise holding Space for the rocket would "click" it.
+  UI.append(el('button', { id: 'btn-endrun', class: 'endrun', tabindex: '-1', on: { mousedown: (e) => e.preventDefault(), click: endRun } }, 'End run ', el('span', { class: 'key' }, 'Esc')));
+}
+function endRun() {
+  if (screen !== 'flight' || !flight || flight.phase === 'done') return;
+  flight.reason = 'ended'; finish(flight, 'ended');
+  finishRun();
 }
 let acc = 0;
 function updateFlight(dt) {
@@ -1900,6 +1910,7 @@ function updateFlight(dt) {
   }
   // rocket trail
   if (flight.firing) emitTrail();
+  const eb = document.getElementById('btn-endrun'); if (eb) eb.hidden = flight.phase !== 'fly'; // not while skidding to a stop on the hill
   if (flight.phase === 'done') { resultsT += dt; if (resultsT > CONFIG.view.resultsDelay) finishRun(); }
 }
 function handleEvent(ev) {
@@ -1984,6 +1995,7 @@ const OUTCOME_TEXT = {
   landed: ['{pig} landed on the hill!', 'Nice and gentle. Level cleared.'],
   short: ['{pig} fell short', 'Splashed down before the hill.'],
   over: ['{pig} overshot', 'Flew right past the hill.'],
+  ended: ['Run ended', 'You ended the flight early.'],
   blocked: ['{pig} fell short', 'Bonked into an obstacle.'],
   splash: ['Splash!', ''],
 };
@@ -2130,6 +2142,7 @@ addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'Space', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { if (screen === 'flight' || screen === 'launching') e.preventDefault(); }
   if (e.code === 'Space' && (screen === 'flight' || screen === 'launching')) e.preventDefault();
   keys[e.code] = true;
+  if (e.code === 'Escape' && screen === 'flight') endRun();
   if (e.code === 'Enter' && screen === 'hangar' && !document.querySelector('.modalbg') && document.activeElement.tagName !== 'SELECT') startLaunch();
 });
 addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -2274,7 +2287,7 @@ function drawHUD() {
   }
   // controls hint
   g.font = '13px sans-serif'; g.fillStyle = 'rgba(255,255,255,0.95)';
-  g.fillText(F.L.rocket ? '↑ ↓ tilt the nose    SPACE fire rockets' : '↑ ↓ tilt the nose', 16, H - 16);
+  g.fillText((F.L.rocket ? '↑ ↓ tilt the nose    SPACE fire rockets' : '↑ ↓ tilt the nose') + '    ESC end run', 16, H - 16);
   // hill indicator
   if (course && course.hill) {
     const hx = (course.hill.x - cam.x) * cam.ppm + W * ANCHOR_X;
