@@ -144,6 +144,9 @@ const CONFIG = {
     bounceSpeed: 7,             // [default] touching down faster than this (m/s straight down) bounces instead of landing
     bounceKeep: 0.6,            // [default] share of downward speed turned into the bounce
     autoRocketClimbDeg: 20,     // [default] while the rocket fires, the natural trim climbs at about this angle
+    rocketStallGuard: true,     // [user request] while the rocket fires the nose can't tip past the stall angle (the thrust keeps air
+                                //   over the wings), so aiming up with the rocket climbs instead of stalling and dropping
+    overshootEndSec: 2.5,       // [user request] levels: once past the far end of the hill, the flight ends after this many seconds
   },
 
   // ---------- LAUNCH (seesaw / catapult) ----------
@@ -414,6 +417,7 @@ function stepFlight(F, input, dt) {
   let dth = inp * P.turnRateDeg * D2R - stab * q * wrapAngle(F.th - (gam + aAuto));
   if (fire) dth += L.rocket.noseUp * D2R;
   F.th = clamp(F.th + dth * dt, -P.maxPitchDeg * D2R, P.maxPitchDeg * D2R);
+  if (fire && W && P.rocketStallGuard) F.th = Math.min(F.th, gam + W.stall - P.autoStallMarginDeg * D2R);
   // Aerodynamics: lift is always sideways to the motion, so tilting only redirects energy.
   const a = wrapAngle(F.th - gam);
   F.alpha = a;
@@ -438,6 +442,9 @@ function stepFlight(F, input, dt) {
   if (F.y > F.maxY) F.maxY = F.y;
   const sp = Math.hypot(F.vx, F.vy); if (sp > F.maxSpeed) F.maxSpeed = sp;
   if (F.course.spawner) F.course.spawner(F, F.course);
+  // Flew past the hill: no way back (the pig never flies backwards), so don't make the player watch a long glide.
+  const H = F.course.hill;
+  if (H && F.x > H.x + H.w) { F.pastHillT = (F.pastHillT || 0) + dt; if (F.pastHillT >= P.overshootEndSec) { F.reason = 'past'; finish(F, 'over'); return; } }
   collide(F, F.course);
 }
 
@@ -2045,7 +2052,7 @@ const FEATURE_TIPS = {
   wings: ['wings', '<b>Wings unlocked!</b> Wings give lift, which is what carries you <b>forward</b>. Each tier has 3 very different wings and only one is right for this level: one comes up short, one overshoots. Picked wrong? Sell it (60% back) and try another.'],
   seesaw: ['seesaw', '<b>Seesaw unlocked!</b> <b>Length</b> and <b>Height</b> are separate upgrades, each half the price of a normal one. Together they give a stronger launch.'],
   launchRig: ['launchRig', '<b>Launch rig unlocked!</b> The pig rides in it on the seesaw for extra launch speed.'],
-  rockets: ['rockets', '<b>Rockets unlocked!</b> Hold <span class="key">Space</span> to fire. Rockets push the way the <b>nose points</b>, so aim with <span class="key">↑</span> <span class="key">↓</span>. Fuel is free and refills every flight. The tank decides how long you can burn.'],
+  rockets: ['rockets', '<b>Rockets unlocked!</b> Hold <span class="key">Space</span> to fire. Rockets push the way the <b>nose points</b>, so aim with <span class="key">↑</span> <span class="key">↓</span>. Tilt up a little while firing to stay in the air longer. Fuel is free and refills every flight. The tank decides how long you can burn.'],
   powerups: ['powerups', '<b>Powerups unlocked!</b> Buy gust clouds before a flight. Each one appears at a random spot along your route. Fly into it to catch it! Each costs double the last.'],
 };
 const OBSTACLE_TIP = '<b>Obstacles ahead!</b> Trees, farmhouses and hills now stand in the way. The number on each one is the payload strength needed to smash it.<br><br>Two ways past:<br>• <b>Ram through</b> with payload. It takes <b>no more fuel</b> than normal flying.<br>• <b>Fly over</b> it. Possible, but it takes the arrow keys and <b>a lot more fuel</b>.';

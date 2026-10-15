@@ -90,7 +90,7 @@
 ### Landing hill (win condition)
 - Each level ends at a **raised hilltop**. **To pass, the pig must land on top of it.**
 - **Falling short = fail** (splash into the water).
-- **Flying past it = fail too.**
+- **Flying past it = fail too.** The flight **ends a few seconds after the pig passes the far end of the hill**, so the player never watches a long glide that can't come back.
 - If your gear gets you to the hill's height and distance, you can **use the arrow keys to bring the pig down onto it** instead of overshooting.
 - **Gear can be too good.** Upgrading all four categories can overshoot by more than the arrow keys can correct.
 - **Every level is passable by upgrading just 2 things**, if you pick the right options. You can afford 3 (see Pricing), but you never *need* 3.
@@ -132,6 +132,7 @@ Based on the Learn to Fly series shops:
 - **Fuel tank** (capacity, i.e. how long you can burn): **cheap**, linear. Tiers are named by **actual quantity in gallons**: starts at 1 gallon, then 3, 5, 10, 15, 18, 20 (see Gear catalog).
 - **Together they cost about one normal upgrade** *(e.g. rocket ~75%, fuel tank ~25%)*.
 - **Rockets push in the direction the pig is pointing.** This is where the arrow keys matter most: aim the nose to aim the thrust. With bad wings the pig ends up nose-up, so the rocket drives it straight up.
+- **Firing the rocket keeps you in the air longer, never shorter.** While it fires, the nose can't tip past the wings' stall angle (the thrust keeps air flowing over them), so tilting up while firing climbs instead of stalling and dropping. Aiming down still dives.
 - **Hold Space to fire the rockets.** Nothing fires on its own: if you never press Space, you sink with a full tank.
 - **Fuel is free and refills every flight.** You pay for tank *capacity* once, not for fuel.
 
