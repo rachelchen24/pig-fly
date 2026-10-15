@@ -100,6 +100,12 @@
   .acct-msg { min-height: 20px; color: #c62828; font-weight: bold; margin-bottom: 8px; }
   .reccode { font-size: 32px; font-weight: bold; letter-spacing: 4px; text-align: center; padding: 12px; margin: 10px 0; background: #fff; border: 3px dashed #f5b800; border-radius: 12px; user-select: all; }
   .lb { width: min(380px, calc(100vw - 32px)); max-height: 40vh; overflow-y: auto; }
+  /* main menu: leaderboards on both sides, menu in the middle; stacked under the menu when narrow */
+  .menuwrap { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; justify-items: center; gap: 24px; padding: 16px; overflow-y: auto; }
+  .menuwrap .menumid { text-align: center; }
+  .menuwrap .lb { width: min(320px, 100%); max-height: 72vh; overflow-y: auto; margin: 0; text-align: center; }
+  .menuwrap .lb h2 { font-size: 20px; margin-bottom: 10px; }
+  @media (max-width: 1050px) { .menuwrap { grid-template-columns: minmax(0, 1fr); align-content: start; } .menuwrap .menumid { order: -1; margin-top: 4vh; } .menuwrap .lb { max-height: none; } }
   .lbl { list-style: none; margin: 0; padding: 0; text-align: left; font-variant-numeric: tabular-nums; }
   .lbl li { display: flex; gap: 10px; padding: 5px 8px; border-radius: 8px; }
   .lbl li:nth-child(odd) { background: rgba(0,0,0,0.04); }
@@ -237,7 +243,7 @@ const CONFIG = {
   ],
 
   // ---------- PIG ----------
-  pig: { defaultName: 'Snowball', nameMaxLength: 16 }, // [user request] players name their pig at Start New Game; blank = Snowball
+  pig: { defaultName: 'Snowball', nameMaxLength: 16 }, // [user request] players name their pig at Start New Game; blank = their 4-character account code when logged in, else Snowball
 
   // ---------- UNLOCKS (exact order from the spec) ----------
   unlocks: { wings: 2, seesaw: 3, launchRig: 4, rockets: 5, powerups: 6, payload: 7 }, // = first level it's available on
@@ -262,7 +268,9 @@ const CONFIG = {
   coins: {
     perRunShare: 0.017,          // coins on a level's flight path = this share of one upgrade (~5 when gear is ~300)
     pickupRadius: 3,             // [default] meters
-    endlessSpacing: 220,         // [default] one coin every this many meters along the path in Fly Infinitely
+    endlessSpacing: 220,         // [default] one coin about every this many meters in Fly Infinitely (randomized 60-140%)
+    endlessLeadSec: 2.5,         // [default] Fly Infinitely coins appear this many seconds ahead of the pig, at the height it's heading to...
+    endlessHeightJitter: 4,      // [default] ...give or take a few meters, so some take a little steering
   },
   powerups: {
     firstCost: 5, costMult: 2,   // 5, 10, 20, 40, 80... (doubling is the only limit)
@@ -1138,7 +1146,7 @@ const ACCOUNT = {
   code: null,          // logged-in 4-character code
   canWrite: true,      // false once the database refuses a write (view-only link)
   syncing: false, dirty: false,
-  board: null, fastBoard: null, boardTab: 'distance',
+  board: null, fastBoard: null,
 };
 const REMEMBER_KEY = 'whenPigsFly.login.v1';
 const BLOCKED_CODES = ['FUCK', 'SHIT', 'CUNT', 'DICK', 'COCK', 'PISS', 'TITS', 'SLUT', 'WHOR', 'HOES', 'NAZI', 'RAPE', 'PORN', 'DAMN', 'BICH', 'BTCH', 'FCUK', 'PUSY', 'ANAL', 'ANUS', 'JIZZ', 'TWAT', 'KNOB', 'DYKE', 'SPIC', 'KIKE', 'GOOK', 'CHNK', 'HOMO', 'POOP', 'CRAP'];
@@ -1376,20 +1384,20 @@ async function loadBoards() {
 }
 function fmtTime(sec) { const m = Math.floor(sec / 60), s = Math.round(sec % 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}:${String(s).padStart(2, '0')}`; }
 function renderBoard() {
-  const box = document.getElementById('board'); if (!box) return;
-  box.innerHTML = '';
-  const tabs = el('div', { class: 'row', style: 'justify-content:center;margin-bottom:8px' },
-    el('button', { class: ACCOUNT.boardTab === 'distance' ? 'pinkb' : '', on: { click: () => { ACCOUNT.boardTab = 'distance'; renderBoard(); } } }, 'Farthest flight'),
-    el('button', { class: ACCOUNT.boardTab === 'fastest' ? 'pinkb' : '', on: { click: () => { ACCOUNT.boardTab = 'fastest'; renderBoard(); } } }, 'Fastest to beat 10 levels'));
-  box.append(tabs);
-  if (!ACCOUNT.api) { box.append(el('div', { class: 'muted' }, 'The global board isn’t available on this copy of the game. Your best here: ' + Math.round(SAVE.bestEndless || 0) + ' m')); return; }
-  const rows = ACCOUNT.boardTab === 'distance' ? ACCOUNT.board : ACCOUNT.fastBoard;
-  if (!rows) { box.append(el('div', { class: 'muted' }, 'Loading…')); return; }
-  if (!rows.length) { box.append(el('div', { class: 'muted' }, ACCOUNT.boardTab === 'distance' ? 'No flights posted yet. Log in and fly in Fly Infinitely to be first.' : 'Nobody has posted a time yet.')); }
-  const list = el('ol', { class: 'lbl' });
-  rows.forEach((r, i) => list.append(el('li', { class: r.code === ACCOUNT.code ? 'me' : '' }, el('span', { class: 'rk' }, String(i + 1)), el('b', null, r.code), el('span', { class: 'sc' }, ACCOUNT.boardTab === 'distance' ? (r.best + ' m') : fmtTime(r.sec)))));
-  box.append(list);
-  if (!ACCOUNT.code) box.append(el('div', { class: 'muted' }, 'Log in to put your code on the board. Your best on this device: ' + Math.round(SAVE.bestEndless || 0) + ' m'));
+  for (const kind of ['dist', 'fast']) {
+    const card = document.getElementById('board-' + kind); if (!card) continue;
+    const box = card.querySelector('.lbbody'); box.innerHTML = '';
+    const mine = kind === 'dist' && SAVE && SAVE.bestEndless ? el('div', { class: 'muted' }, 'Your best on this device: ' + Math.round(SAVE.bestEndless) + ' m') : '';
+    if (!ACCOUNT.api) { box.append(el('div', { class: 'muted' }, ACCOUNT.ready ? 'The global board isn’t available on this copy of the game.' : 'Loading…'), mine); continue; }
+    const rows = kind === 'dist' ? ACCOUNT.board : ACCOUNT.fastBoard;
+    if (!rows) { box.append(el('div', { class: 'muted' }, 'Loading…')); continue; }
+    if (!rows.length) box.append(el('div', { class: 'muted' }, kind === 'dist' ? 'No flights posted yet. Beat level 10 while logged in, then go far in Fly Infinitely to be first.' : 'Nobody has posted a time yet. Beat all 10 levels while logged in to be first.'));
+    const list = el('ol', { class: 'lbl' });
+    rows.forEach((r, i) => list.append(el('li', { class: r.code === ACCOUNT.code ? 'me' : '' }, el('span', { class: 'rk' }, String(i + 1)), el('b', null, r.code), el('span', { class: 'sc' }, kind === 'dist' ? (r.best + ' m') : fmtTime(r.sec)))));
+    box.append(list);
+    if (!ACCOUNT.code && rows.length) box.append(el('div', { class: 'muted', style: 'margin-top:6px' }, 'Log in to put your code on the board.'));
+    if (kind === 'dist') box.append(mine);
+  }
 }
 
 // ---------- the Log In / Sign Up window ----------
@@ -1503,7 +1511,9 @@ const cam = { x: -6, y: 6, ppm: 14 };
 let time = 0;
 function prof() { return mode === 'endless' ? SAVE.endless : SAVE.run; }
 // The player names their pig when starting a new game; no name (or an old save) = Snowball.
-function pigName() { const p = SAVE && (prof() || SAVE.run); return (p && p.pigName) || (SAVE && SAVE.run && SAVE.run.pigName) || CONFIG.pig.defaultName; }
+function pigName() { const p = SAVE && (prof() || SAVE.run); return (p && p.pigName) || (SAVE && SAVE.run && SAVE.run.pigName) || autoPigName(); }
+// a pig left unnamed is called by the player's 4-character account code when logged in (and follows it if they log in later)
+function autoPigName() { return (typeof ACCOUNT !== 'undefined' && ACCOUNT.code) || CONFIG.pig.defaultName; }
 function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 function curLevel() { return mode === 'endless' ? 11 : SAVE.run.selected; }
 function capLevel() { return mode === 'endless' ? 11 : SAVE.run.level; }
@@ -1602,7 +1612,7 @@ function showMenu() {
   if (PRACTICE) { SAVE = PRACTICE; PRACTICE = null; }
   screen = 'menu'; clearUI();
   const s = SAVE;
-  const box = el('div', { class: 'center menu' });
+  const box = el('div', { class: 'menu menumid' });
   box.append(el('h1', null, 'When Pigs Fly'), el('div', { style: 'color:#fff;font-weight:bold;text-shadow:0 2px 0 rgba(0,0,0,.25);margin-bottom:14px' }, 'Launch the pig. Buy gear. Land on the hill.'));
   const runInProgress = s && s.run && s.run.started && !s.run.completed;
   box.append(el('button', { class: 'big go', id: 'btn-new', on: { click: startNewGame } }, 'Start New Game'));
@@ -1615,12 +1625,10 @@ function showMenu() {
     ACCOUNT.code ? el('button', { id: 'btn-logout', on: { click: logOut } }, 'Log Out') : el('button', { id: 'btn-login', on: { click: () => showAccountModal('login') } }, 'Log In / Sign Up'),
     el('button', { on: { click: startPractice } }, 'Tutorial')));
   if (ACCOUNT.code) box.append(el('div', { class: 'who' }, 'Logged in as ', el('b', null, ACCOUNT.code), ' · progress saves to your account'));
-  if (s && s.beatGame) {
-    // leaderboard only appears once level 10 has been beaten
-    box.append(el('div', { class: 'card lb' }, el('h2', null, 'Leaderboard'), el('div', { id: 'board' })));
-    setTimeout(() => { renderBoard(); loadBoards(); }, 0);
-  }
-  UI.append(box);
+  // both leaderboards, one on each side of the menu (stacked under it on narrow screens)
+  const boardCard = (kind, title) => el('div', { class: 'card lb', id: 'board-' + kind }, el('h2', null, title), el('div', { class: 'lbbody' }));
+  UI.append(el('div', { class: 'menuwrap' }, boardCard('dist', '🏆 Farthest flight'), box, boardCard('fast', '⏱️ Fastest to beat 10 levels')));
+  setTimeout(() => { renderBoard(); loadBoards(); }, 0);
   if (DEV) UI.append(el('div', { class: 'muted', style: 'position:absolute;left:12px;bottom:10px;color:#fff' }, 'dev mode on (?dev)'));
 }
 function showAccountInfo() {
@@ -1648,14 +1656,14 @@ function startNewGame() {
 }
 function askPigName(done) {
   const bg = el('div', { class: 'modalbg', id: 'namepig' });
-  const input = el('input', { id: 'pigname', maxlength: CONFIG.pig.nameMaxLength, placeholder: CONFIG.pig.defaultName, autocomplete: 'off', spellcheck: 'false', style: 'letter-spacing:0;text-align:center;width:100%' });
-  const finish = () => { const n = input.value.replace(/s+/g, ' ').trim().slice(0, CONFIG.pig.nameMaxLength); bg.remove(); done(n || CONFIG.pig.defaultName); };
+  const input = el('input', { id: 'pigname', maxlength: CONFIG.pig.nameMaxLength, placeholder: autoPigName(), autocomplete: 'off', spellcheck: 'false', style: 'letter-spacing:0;text-align:center;width:100%' });
+  const finish = () => { const n = input.value.replace(/s+/g, ' ').trim().slice(0, CONFIG.pig.nameMaxLength); bg.remove(); done(n || null); }; // null = automatic name
   input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') finish(); if (e.key === 'Escape') bg.remove(); });
   const prev = el('canvas', { width: 460, height: 240, style: 'width:230px;height:120px;background:linear-gradient(#bfe6fb,#e8f6fd);border-radius:12px' });
   bg.append(el('div', { class: 'card', style: 'max-width:380px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center' },
     el('h2', { style: 'margin:0' }, 'Name your pig'), prev,
     el('label', { class: 'fld', for: 'pigname', style: 'width:100%' }, input),
-    el('div', { class: 'muted' }, `Leave it blank and your pig is called ${CONFIG.pig.defaultName}.`),
+    el('div', { class: 'muted' }, ACCOUNT.code ? `Leave it blank and your pig is called ${ACCOUNT.code}, like your account.` : `Leave it blank and your pig is called ${CONFIG.pig.defaultName} (or your 4-character code, once you log in).`),
     el('div', { class: 'row', style: 'justify-content:center' }, el('button', { class: 'go big', id: 'btn-name-ok', on: { click: finish } }, "Let's fly!"), el('button', { on: { click: () => bg.remove() } }, 'Cancel'))));
   UI.append(bg);
   try { drawShopPreview(prev, { wings: null, rocket: null, length: 0, height: 0, launchRig: 0, fuel: 0, payload: 0 }); } catch (e) { }
@@ -1823,8 +1831,8 @@ function buildCourse(loadout) {
     const n = coinsForLevel(L), r = makeRng(L * 7919 + 13), endX = Math.max(30, Math.min(natEnd, lv.hillX + lv.hillWidth));
     for (let i = 0; i < n; i++) { const x = endX * (0.15 + 0.75 * (i + 0.5) / n) + (r() - 0.5) * 8; C.coins.push({ x, y: Math.max(2, pathYAt(path, x) + (r() - 0.4) * 4) }); }
   } else {
-    const r = makeRng(Math.floor(Math.random() * 1e9));
-    for (let x = CONFIG.coins.endlessSpacing; x < natEnd * 1.3; x += CONFIG.coins.endlessSpacing) { const xx = x + (r() - 0.5) * 40; C.coins.push({ x: xx, y: Math.max(2, pathYAt(path, xx) + (r() - 0.4) * 6) }); }
+    // coins are placed during the flight, just ahead of where the pig is really going (see endlessSpawner)
+    C.nextCoinX = CONFIG.coins.endlessSpacing * (0.6 + 0.8 * Math.random());
     const O = CONFIG.obstacles;
     C.nextObsT = O.endlessFirstAfterSec[0] + Math.random() * (O.endlessFirstAfterSec[1] - O.endlessFirstAfterSec[0]);
     C.spawner = endlessSpawner;
@@ -1843,7 +1851,16 @@ function buildCourse(loadout) {
   return C;
 }
 function endlessSpawner(F, C) {
-  if (F.phase !== 'fly' || F.t < C.nextObsT) return;
+  if (F.phase !== 'fly') return;
+  // Coins: one every ~endlessSpacing meters, a couple of seconds ahead, at the height the pig is heading to.
+  const K = CONFIG.coins, ahead = Math.max(F.vx, 8) * K.endlessLeadSec;
+  if (F.x + ahead >= C.nextCoinX) {
+    const tAhead = Math.max(0, C.nextCoinX - F.x) / Math.max(F.vx, 8);
+    const y = F.y + F.vy * tAhead * 0.7 + (Math.random() - 0.4) * K.endlessHeightJitter;
+    C.coins.push({ x: C.nextCoinX, y: Math.max(2, y) });
+    C.nextCoinX += K.endlessSpacing * (0.6 + 0.8 * Math.random());
+  }
+  if (F.t < C.nextObsT) return;
   const O = CONFIG.obstacles, la = O.endlessLookaheadSec;
   const x = F.x + Math.max(F.vx, 8) * la;
   const yPred = Math.max(0, F.y + F.vy * la * 0.5);

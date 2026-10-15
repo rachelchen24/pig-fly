@@ -319,7 +319,8 @@ Buttons depend on who's playing:
 - **"Fly Infinitely"** (endless mode) **never shows until the player has beaten the game**, and it has to actually work when it does. *(Final button name TBD.)*
 - **Beating the game is remembered permanently.** A logged-in player who has beaten it can always go back to Fly Infinitely, with the equipment they left off with.
 - **Start New Game while logged in:** the level run starts **from scratch: level 1, no gear.** Your **leaderboard score stays**.
-- **Name your pig.** Start New Game asks the player to name their pig (up to 16 characters). Leaving it blank names the pig **Snowball**. The name shows in the shop, on the results screen, in the tutorial and in the ending. It is private to the player (not on the leaderboard).
+- **Both leaderboards are on the main menu for every player**, one on each side of the menu buttons (Farthest flight on the left, Fastest to beat 10 levels on the right), so both are obvious at a glance. On narrow screens they stack under the menu.
+- **Name your pig.** Start New Game asks the player to name their pig (up to 16 characters). Leaving it blank names the pig after the player's **4-character account code** when logged in (and the name follows the code if they log in later); otherwise it's **Snowball**. The name shows in the shop, on the results screen, in the tutorial and in the ending. It is private to the player (not on the leaderboard).
 - **The level run and Fly Infinitely are saved separately.** Starting a new game **never touches** your Fly Infinitely save; you can always go back to it.
 
 ### Tutorial
@@ -339,7 +340,7 @@ Buttons depend on who's playing:
 - Unlocks after the ending. Fly with your gear, no target distance, go as far as you can.
 - **High-end gear unlocks**, as one more tier in each category (see Gear catalog, "Endless" rows), so endless mode has something to save for.
 - **Milestone payouts:** a one-time payment the first time you pass each distance marker. Same idea as level payouts: each one pays once and can't be ground.
-- **Coins and powerups** keep working the same way.
+- **Coins and powerups** keep working the same way. In Fly Infinitely, coins appear during the flight a couple of seconds ahead of the pig, at the height it's heading to, so they're actually reachable (about one every 220 m).
 - **Obstacles appear in endless mode too, but rarely**, so it doesn't turn into Flappy Bird.
   - **At least 5 seconds of flight between obstacles** (same rule as level mode), often longer. The gap is **randomized** (e.g. 5–12 seconds; tune it).
 - **Fly Infinitely is its own save and never resets.** Logging back in resumes it with the equipment you left off with.
