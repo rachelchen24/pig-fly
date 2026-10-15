@@ -1119,11 +1119,14 @@ function drawChicken(g, x, y, s, t) { g.save(); g.translate(x, y); g.scale(s, s)
 </script>
 <script>
 /* ===================== ACCOUNTS + LEADERBOARD (Step 5) =====================
-   Uses the published page's shared database (claude.use("db")). Opened as a plain local file there is
-   no database: the game still works and saves in the browser, and the account buttons explain that.
+   Works with either save server: the claude.ai published page's database, or the Vercel functions in /api
+   (Upstash Redis). With neither (e.g. opened as a local file) the game still works and saves in the browser.
    Security is game-level (spec): PINs are stored as salted, slow hashes, never as plain numbers. */
 const ACCOUNT = {
-  db: null,            // shared database namespace, or null
+  api: null,           // the save server in use (CLAUDE_API or HTTP_API), or null
+  db: null,            // claude.ai database namespace, when on the published page
+  token: null,         // proves we're logged in (session token, or the PIN hash on claude.ai)
+  why: '',             // why there's no save server, when the site can tell us
   ready: false,        // finished asking for the database
   code: null,          // logged-in 4-character code
   canWrite: true,      // false once the database refuses a write (view-only link)
@@ -1163,95 +1166,180 @@ async function hashSecret(secret, saltHex) {
 function makeRecoveryCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const a = new Uint8Array(8); crypto.getRandomValues(a); const s = [...a].map(b => A[b % A.length]).join(''); return s.slice(0, 4) + '-' + s.slice(4); }
 function cleanRecovery(r) { return String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
-// ---------- database helpers ----------
-function acctRef(code) { return ACCOUNT.db.doc('accounts/' + code); }
-function noteWriteError(e) {
-  if (e && e.code === 'invalid_argument') { ACCOUNT.canWrite = false; toast('This link can only view: ask the owner for Contributor access to save.'); }
-  else if (e && e.code === 'quota_exceeded') toast('The game\'s database is full, so this could not be saved.');
-  else toast('Could not reach the save server. Your progress is kept in this browser for now.');
+// ---------- save servers ----------
+// The game can talk to two save servers. Both answer the same calls, and the rest of the game only uses ACCOUNT.api:
+//   CLAUDE_API: the claude.ai published page's built-in database (claude.use("db")). PINs are hashed in the browser.
+//   HTTP_API:   the Vercel functions in /api, backed by Upstash Redis. PINs are hashed on the server, wrong guesses are rate-limited.
+// Each call returns an object; { error } means it failed, with a message to show the player.
+const OFFLINE = 'Could not reach the save server. Try again in a moment.';
+
+const CLAUDE_API = {
+  name: 'claude',
+  ref: (path) => ACCOUNT.db.doc(path),
+  writeError(e) {
+    if (e && e.code === 'invalid_argument') return { error: 'This link can only view, so it can\'t save. Ask the owner for Contributor access.', readOnly: true };
+    if (e && e.code === 'quota_exceeded') return { error: 'The game\'s database is full, so this could not be saved.' };
+    return { error: OFFLINE };
+  },
+  async signup(code, pin, save) {
+    const ref = this.ref('accounts/' + code);
+    let lease;
+    try { lease = await ref.acquire({ holder: randHex(8), ttlMs: 5000 }); } catch (e) { return { error: OFFLINE }; }
+    if (!lease.acquired) return { error: 'Someone is claiming that code right now. Pick another or try again.' };
+    const snap = await ref.get();
+    if (snap.exists && snap.data().pinHash) return { error: 'That code is already taken. Pick another.' };
+    const salt = randHex(16), recovery = makeRecoveryCode(), recSalt = randHex(16);
+    const doc = { code, salt, pinHash: await hashSecret(pin, salt), recSalt, recHash: await hashSecret(cleanRecovery(recovery), recSalt), save, created: Date.now(), updated: Date.now() };
+    try { await ref.set(doc); } catch (e) { return this.writeError(e); }
+    return { token: doc.pinHash, recovery };
+  },
+  async login(code, pin) {
+    let snap; try { snap = await this.ref('accounts/' + code).get(); } catch (e) { return { error: OFFLINE }; }
+    if (!snap.exists || !snap.data().pinHash) return { error: 'No account with that code. Check it, or sign up.' };
+    const d = snap.data();
+    if (await hashSecret(pin, d.salt) !== d.pinHash) return { error: 'Wrong PIN. Try again, or use your recovery code.' };
+    return { token: d.pinHash, save: d.save };
+  },
+  async resume(code, token) {
+    try { const snap = await this.ref('accounts/' + code).get(); if (snap.exists && snap.data().pinHash === token) return { code, save: snap.data().save }; } catch (e) { }
+    return { error: 'Logged out.' };
+  },
+  async reset(code, recovery, pin) {
+    const ref = this.ref('accounts/' + code);
+    let snap; try { snap = await ref.get(); } catch (e) { return { error: OFFLINE }; }
+    if (!snap.exists) return { error: 'No account with that code.' };
+    const d = snap.data();
+    if (!d.recHash || await hashSecret(cleanRecovery(recovery), d.recSalt) !== d.recHash) return { error: 'That recovery code doesn\'t match.' };
+    const salt = randHex(16), newRec = makeRecoveryCode(), recSalt = randHex(16); // the old recovery code is used up
+    const upd = { salt, pinHash: await hashSecret(pin, salt), recSalt, recHash: await hashSecret(cleanRecovery(newRec), recSalt), updated: Date.now() };
+    try { await ref.update(upd); } catch (e) { return this.writeError(e); }
+    return { token: upd.pinHash, recovery: newRec, save: d.save };
+  },
+  async save(code, token, save) {
+    try { await this.ref('accounts/' + code).update({ save, updated: Date.now() }); return { ok: true }; } catch (e) { return this.writeError(e); }
+  },
+  async logout() { return { ok: true }; },
+  async post(code, token, kind, value) {
+    const ref = this.ref((kind === 'dist' ? 'leaderboard/' : 'fastest/') + code);
+    try {
+      const s = await ref.get(), cur = s.exists ? s.data() : null;
+      if (kind === 'dist' && cur && (cur.best || 0) >= value) return { ok: true };
+      if (kind === 'fast' && cur && cur.sec <= value) return { ok: true };
+      await ref.set(kind === 'dist' ? { code, best: value, at: Date.now() } : { code, sec: value, at: Date.now() });
+      return { ok: true };
+    } catch (e) { return this.writeError(e); }
+  },
+  async boards() {
+    const [a, b] = await Promise.all([
+      ACCOUNT.db.collection('leaderboard').orderBy('best', 'desc').limit(20).get(),
+      ACCOUNT.db.collection('fastest').orderBy('sec', 'asc').limit(20).get()]);
+    return { dist: a.docs.map(d => d.data()), fast: b.docs.map(d => d.data()) };
+  },
+};
+
+async function apiCall(path, body) {
+  try {
+    const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
+    let j = null; try { j = await r.json(); } catch (e) { }
+    if (!j) return { error: OFFLINE };
+    if (!r.ok && !j.error) j.error = OFFLINE;
+    if (r.status === 401) j.loggedOut = true;
+    return j;
+  } catch (e) { return { error: OFFLINE }; }
 }
+const HTTP_API = {
+  name: 'http',
+  signup: (code, pin, save) => apiCall('/api/account', { action: 'signup', code, pin, save }),
+  login: (code, pin) => apiCall('/api/account', { action: 'login', code, pin }),
+  resume: (code, token) => apiCall('/api/account', { action: 'resume', token }),
+  reset: (code, recovery, pin) => apiCall('/api/account', { action: 'reset', code, recovery, pin }),
+  save: (code, token, save) => apiCall('/api/account', { action: 'save', token, save }),
+  logout: (token) => apiCall('/api/account', { action: 'logout', token }),
+  post: (code, token, kind, value) => apiCall('/api/board', { token, kind, value }),
+  async boards() { const r = await apiCall('/api/board'); if (r.error) throw new Error(r.error); return r; },
+};
+
+// Which save server is here? claude.ai page -> its database. Hosted on Vercel with storage connected -> /api. Otherwise none.
 async function initAccounts() {
-  try { if (window.claude && typeof window.claude.use === 'function') ACCOUNT.db = await window.claude.use('db'); } catch (e) { ACCOUNT.db = null; }
+  if (window.claude && typeof window.claude.use === 'function') {
+    try { ACCOUNT.db = await window.claude.use('db'); } catch (e) { ACCOUNT.db = null; }
+    if (ACCOUNT.db) ACCOUNT.api = CLAUDE_API;
+  }
+  if (!ACCOUNT.api && /^https?:$/.test(location.protocol)) {
+    const h = await Promise.race([apiCall('/api/health'), new Promise(r => setTimeout(() => r({ error: 'timeout' }), 6000))]);
+    if (h.ok) ACCOUNT.api = HTTP_API; else if (h.reason) ACCOUNT.why = h.reason;
+  }
   ACCOUNT.ready = true;
-  if (ACCOUNT.db) {
+  if (ACCOUNT.api) {
     let rem = null; try { rem = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null'); } catch (e) { }
-    if (rem && rem.code && rem.key) {
-      try {
-        const snap = await acctRef(rem.code).get();
-        if (snap.exists && snap.data().pinHash === rem.key) adoptAccount(rem.code, snap.data());
-      } catch (e) { }
+    if (rem && rem.code && rem.key && (rem.via || 'claude') === ACCOUNT.api.name) {
+      const r = await ACCOUNT.api.resume(rem.code, rem.key);
+      if (!r.error) adoptAccount(rem.code, rem.key, r.save);
+      else if (r.loggedOut) forget();
     }
   }
   if (screen === 'menu') showMenu();
 }
-function adoptAccount(code, doc) {
-  ACCOUNT.code = code;
-  SAVE = doc.save && doc.save.v ? JSON.parse(JSON.stringify(doc.save)) : (SAVE || freshSave());
+function adoptAccount(code, token, save) {
+  ACCOUNT.code = code; ACCOUNT.token = token; ACCOUNT.canWrite = true;
+  SAVE = save && save.v ? JSON.parse(JSON.stringify(save)) : (SAVE || freshSave());
   try { localStorage.setItem(SAVE_KEY + '.' + code, JSON.stringify(SAVE)); } catch (e) { }
+  remember(code, token);
+}
+function noteWriteError(r) {
+  if (r.readOnly) ACCOUNT.canWrite = false;
+  if (r.loggedOut) { toast('You were logged out. Log in again to keep saving to your account.'); ACCOUNT.code = null; forget(); return; }
+  toast(r.readOnly ? 'This link can only view: ask the owner for Contributor access to save.' : 'Could not reach the save server. Your progress is kept in this browser for now.');
 }
 // autosave to the account: one write at a time, coalescing bursts
 function cloudSave() {
-  if (!ACCOUNT.db || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return;
+  if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return;
   ACCOUNT.dirty = true;
   if (ACCOUNT.syncing) return;
   ACCOUNT.syncing = true;
   setTimeout(async () => {
-    while (ACCOUNT.dirty && ACCOUNT.canWrite) {
+    while (ACCOUNT.dirty && ACCOUNT.canWrite && ACCOUNT.code) {
       ACCOUNT.dirty = false;
-      try { await acctRef(ACCOUNT.code).update({ save: JSON.parse(JSON.stringify(SAVE)), updated: Date.now() }); }
-      catch (e) { noteWriteError(e); break; }
+      const r = await ACCOUNT.api.save(ACCOUNT.code, ACCOUNT.token, JSON.parse(JSON.stringify(SAVE)));
+      if (r.error) { noteWriteError(r); break; }
     }
     ACCOUNT.syncing = false;
   }, 500);
 }
 
-// ---------- sign up / log in / reset ----------
+// ---------- sign up / log in / reset (rules checked here first, and again on the server) ----------
 async function signUp(code, pin, pin2) {
   code = normalizeCode(code);
   const p = codeProblem(code) || pinProblem(pin); if (p) return { error: p };
   if (pin !== pin2) return { error: 'The two PINs don\'t match. Type the same PIN twice.' };
-  const ref = acctRef(code);
-  let lease;
-  try { lease = await ref.acquire({ holder: randHex(8), ttlMs: 5000 }); } catch (e) { return { error: 'Could not reach the save server. Try again in a moment.' }; }
-  if (!lease.acquired) return { error: 'Someone is claiming that code right now. Pick another or try again.' };
-  const snap = await ref.get();
-  if (snap.exists && snap.data().pinHash) return { error: 'That code is already taken. Pick another.' };
-  const salt = randHex(16), recovery = makeRecoveryCode(), recSalt = randHex(16);
-  const save = SAVE && !SAVE.practice ? SAVE : freshSave();
-  const doc = { code, salt, pinHash: await hashSecret(pin, salt), recSalt, recHash: await hashSecret(cleanRecovery(recovery), recSalt), save: JSON.parse(JSON.stringify(save)), created: Date.now(), updated: Date.now() };
-  try { await ref.set(doc); } catch (e) { noteWriteError(e); return { error: e && e.code === 'invalid_argument' ? 'This link can only view, so it can\'t create accounts. Ask the owner for Contributor access.' : 'Could not create the account. Try again.' }; }
-  adoptAccount(code, doc);
-  remember(code, doc.pinHash);
-  return { ok: true, recovery };
+  const save = JSON.parse(JSON.stringify(SAVE && !SAVE.practice ? SAVE : freshSave()));
+  const r = await ACCOUNT.api.signup(code, pin, save);
+  if (r.error) { if (r.readOnly) ACCOUNT.canWrite = false; return { error: r.error }; }
+  adoptAccount(code, r.token, save);
+  return { ok: true, recovery: r.recovery };
 }
 async function logIn(code, pin) {
   code = normalizeCode(code);
   if (codeProblem(code)) return { error: 'Codes are 4 letters or digits with at least 2 letters.' };
-  let snap; try { snap = await acctRef(code).get(); } catch (e) { return { error: 'Could not reach the save server. Try again in a moment.' }; }
-  if (!snap.exists || !snap.data().pinHash) return { error: 'No account with that code. Check it, or sign up.' };
-  const d = snap.data();
-  if (await hashSecret(pin, d.salt) !== d.pinHash) return { error: 'Wrong PIN. Try again, or use your recovery code.' };
-  adoptAccount(code, d); remember(code, d.pinHash);
+  const r = await ACCOUNT.api.login(code, pin);
+  if (r.error) return { error: r.error };
+  adoptAccount(code, r.token, r.save);
   return { ok: true };
 }
 async function resetPin(code, recovery, pin, pin2) {
   code = normalizeCode(code);
   const p = pinProblem(pin); if (p) return { error: p };
   if (pin !== pin2) return { error: 'The two PINs don\'t match. Type the same PIN twice.' };
-  let snap; try { snap = await acctRef(code).get(); } catch (e) { return { error: 'Could not reach the save server.' }; }
-  if (!snap.exists) return { error: 'No account with that code.' };
-  const d = snap.data();
-  if (!d.recHash || await hashSecret(cleanRecovery(recovery), d.recSalt) !== d.recHash) return { error: 'That recovery code doesn\'t match.' };
-  // the old recovery code is used up: issue a new one
-  const salt = randHex(16), newRec = makeRecoveryCode(), recSalt = randHex(16);
-  const upd = { salt, pinHash: await hashSecret(pin, salt), recSalt, recHash: await hashSecret(cleanRecovery(newRec), recSalt), updated: Date.now() };
-  try { await acctRef(code).update(upd); } catch (e) { noteWriteError(e); return { error: 'Could not save the new PIN.' }; }
-  adoptAccount(code, Object.assign({}, d, upd)); remember(code, upd.pinHash);
-  return { ok: true, recovery: newRec };
+  const r = await ACCOUNT.api.reset(code, recovery, pin);
+  if (r.error) return { error: r.error };
+  adoptAccount(code, r.token, r.save);
+  return { ok: true, recovery: r.recovery };
 }
-function remember(code, key) { try { localStorage.setItem(REMEMBER_KEY, JSON.stringify({ code, key })); } catch (e) { } }
+function remember(code, key) { try { localStorage.setItem(REMEMBER_KEY, JSON.stringify({ code, key, via: ACCOUNT.api && ACCOUNT.api.name })); } catch (e) { } }
+function forget() { try { localStorage.removeItem(REMEMBER_KEY); } catch (e) { } }
 function logOut() {
-  ACCOUNT.code = null; try { localStorage.removeItem(REMEMBER_KEY); } catch (e) { }
+  if (ACCOUNT.api && ACCOUNT.token) ACCOUNT.api.logout(ACCOUNT.token);
+  ACCOUNT.code = null; ACCOUNT.token = null; forget();
   SAVE = loadSave(); showMenu();
 }
 
@@ -1263,26 +1351,20 @@ function plausibleDistance(dist, eq, powerups) {
   return dist <= natural * 1.6 + (powerups || 0) * 150 + 300;
 }
 async function submitBest(dist, eq, powerups) {
-  if (!ACCOUNT.db || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return;
+  if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return;
   if (!plausibleDistance(dist, eq, powerups)) { toast('That distance looks impossible for your gear, so it was not posted.'); return; }
-  const ref = ACCOUNT.db.doc('leaderboard/' + ACCOUNT.code);
-  try { const s = await ref.get(); if (s.exists && (s.data().best || 0) >= dist) return; await ref.set({ code: ACCOUNT.code, best: Math.round(dist), at: Date.now() }); }
-  catch (e) { noteWriteError(e); }
+  const r = await ACCOUNT.api.post(ACCOUNT.code, ACCOUNT.token, 'dist', Math.round(dist));
+  if (r.error) noteWriteError(r);
 }
 async function submitFastest(sec) {
-  if (!ACCOUNT.db || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite || !(sec > 0)) return;
-  const ref = ACCOUNT.db.doc('fastest/' + ACCOUNT.code);
-  try { const s = await ref.get(); if (s.exists && s.data().sec <= sec) return; await ref.set({ code: ACCOUNT.code, sec: Math.round(sec), at: Date.now() }); }
-  catch (e) { noteWriteError(e); }
+  if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite || !(sec > 0)) return;
+  const r = await ACCOUNT.api.post(ACCOUNT.code, ACCOUNT.token, 'fast', Math.round(sec));
+  if (r.error) noteWriteError(r);
 }
 async function loadBoards() {
-  if (!ACCOUNT.db) return;
-  try {
-    const [a, b] = await Promise.all([
-      ACCOUNT.db.collection('leaderboard').orderBy('best', 'desc').limit(20).get(),
-      ACCOUNT.db.collection('fastest').orderBy('sec', 'asc').limit(20).get()]);
-    ACCOUNT.board = a.docs.map(d => d.data()); ACCOUNT.fastBoard = b.docs.map(d => d.data());
-  } catch (e) { ACCOUNT.board = ACCOUNT.board || []; ACCOUNT.fastBoard = ACCOUNT.fastBoard || []; }
+  if (!ACCOUNT.api) return;
+  try { const r = await ACCOUNT.api.boards(); ACCOUNT.board = r.dist; ACCOUNT.fastBoard = r.fast; }
+  catch (e) { ACCOUNT.board = ACCOUNT.board || []; ACCOUNT.fastBoard = ACCOUNT.fastBoard || []; }
   if (screen === 'menu') renderBoard();
 }
 function fmtTime(sec) { const m = Math.floor(sec / 60), s = Math.round(sec % 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}:${String(s).padStart(2, '0')}`; }
@@ -1293,7 +1375,7 @@ function renderBoard() {
     el('button', { class: ACCOUNT.boardTab === 'distance' ? 'pinkb' : '', on: { click: () => { ACCOUNT.boardTab = 'distance'; renderBoard(); } } }, 'Farthest flight'),
     el('button', { class: ACCOUNT.boardTab === 'fastest' ? 'pinkb' : '', on: { click: () => { ACCOUNT.boardTab = 'fastest'; renderBoard(); } } }, 'Fastest to beat 10 levels'));
   box.append(tabs);
-  if (!ACCOUNT.db) { box.append(el('div', { class: 'muted' }, 'The global board works on the published page. Your best here: ' + Math.round(SAVE.bestEndless || 0) + ' m')); return; }
+  if (!ACCOUNT.api) { box.append(el('div', { class: 'muted' }, 'The global board isn’t available on this copy of the game. Your best here: ' + Math.round(SAVE.bestEndless || 0) + ' m')); return; }
   const rows = ACCOUNT.boardTab === 'distance' ? ACCOUNT.board : ACCOUNT.fastBoard;
   if (!rows) { box.append(el('div', { class: 'muted' }, 'Loading…')); return; }
   if (!rows.length) { box.append(el('div', { class: 'muted' }, ACCOUNT.boardTab === 'distance' ? 'No flights posted yet. Log in and fly in Fly Infinitely to be first.' : 'Nobody has posted a time yet.')); }
@@ -1311,8 +1393,9 @@ function showAccountModal(tab) {
   const card = el('div', { class: 'card', style: 'width:min(440px, calc(100% - 32px));text-align:left' });
   bg.append(card); UI.append(bg);
   const close = () => bg.remove();
-  if (!ACCOUNT.db) {
-    card.append(el('h2', null, 'Accounts'), el('p', null, ACCOUNT.ready ? 'Accounts need the published version of the game (it has the shared save server). Opened as a file, progress saves in this browser only.' : 'Connecting to the save server…'),
+  if (!ACCOUNT.api) {
+    card.append(el('h2', null, 'Accounts'), el('p', null, !ACCOUNT.ready ? 'Connecting to the save server…' : 'Accounts aren’t available on this copy of the game, so your progress saves in this browser only.'),
+      ACCOUNT.why === 'no database connected' ? el('p', { class: 'muted' }, 'Site owner: in Vercel, open your project → Storage, add Upstash for Redis, connect it to this project, then redeploy.') : '',
       el('button', { class: 'go', on: { click: close } }, 'OK'));
     return;
   }

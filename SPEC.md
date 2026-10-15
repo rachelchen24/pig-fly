@@ -239,6 +239,8 @@ Each slot covers a weakness in the others:
 - **Autosave.** Progress saves automatically after every purchase, sale, equip change, and run. There's no Save button.
 - **PIN reset uses a one-time recovery code** shown at signup. The player writes it down, and entering it later lets them set a new PIN. If they lose both, they start over. Low stakes: it's a game about a flying pig, and a returning player already knows how to get back to where they were.
 - Saves live in the game's **shared database**.
+  - **On Vercel** that's **Upstash Redis** (added through Vercel's Storage tab), reached through small server functions in `api/`. The server hashes PINs, and **10 wrong tries lock a code for 15 minutes**, so a 4-digit PIN can't simply be guessed.
+  - On the claude.ai-hosted version it's that page's built-in database.
 - *(proposed)* While Steps 1–4 are being tested, progress saves in the browser. Accounts get connected in Step 5, along with the shared database.
 
 ### Test checklist

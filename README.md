@@ -42,13 +42,17 @@ There are 10 levels. Beat level 10 to unlock **Fly Infinitely**, an endless dist
 ## Saving and accounts
 
 - **Default:** progress autosaves in your browser (`localStorage`).
-- **Accounts and leaderboard:** players can log in with a 4-character code and a PIN, and there are global leaderboards. These need a shared database. Right now that's the claude.ai-hosted version's built-in database, so they **only work there**. On any other host, the game runs fully with browser saves, and the login button explains that accounts aren't available.
+- **Accounts and leaderboard:** players can log in with a 4-character code and a PIN, and there are global leaderboards. These need a save server, and the game uses whichever one it finds:
+  - **On Vercel:** the functions in `api/`, backed by Upstash Redis (set up below).
+  - **On the claude.ai-hosted version:** that page's built-in database.
+  - **Anywhere else** (a local file, another static host): no accounts. The game runs fully with browser saves, and the login button explains why.
 
 ## Project files
 
 | File | What it is |
 |---|---|
 | `index.html` | The whole game |
+| `api/` | Vercel functions for accounts and leaderboards (`account.js`, `board.js`, `health.js`, shared helpers in `_lib.js`) |
 | `SPEC.md` | The full game design, including every rule and change |
 | `NOTES.md` | Build notes: balance method, physics decisions, test results, known issues |
 
@@ -64,12 +68,21 @@ To wipe your local save, run `localStorage.clear()` in the browser console.
 
 ## Deploying
 
-It's a static site, so no build command or framework is needed. On **Vercel**:
+### Vercel (with accounts)
 
-1. Import the repo (**Add New → Project**).
-2. Set **Framework Preset** to **Other**, leave **Build Command** empty, and leave **Output Directory** as the repo root.
-3. Deploy.
+No build command or framework is needed, and there's nothing to install: the `api/` functions call the database over HTTPS.
 
-Or run `npx vercel --prod` from the project folder.
+1. **Import the repo.** In Vercel, choose **Add New → Project**. Set **Framework Preset** to **Other**, leave **Build Command** empty, and leave **Output Directory** as the repo root. Deploy.
+2. **Add the database.** In the project, open **Storage → Create Database** (or **Browse Marketplace**) and pick **Upstash for Redis**. The free plan is plenty. Connect it to this project for all environments.
+3. **Redeploy** (**Deployments → ⋯ → Redeploy**), so the functions pick up the new environment variables (`KV_REST_API_URL` and `KV_REST_API_TOKEN`, or the `UPSTASH_REDIS_REST_*` pair; either works).
+4. **Check it.** Open `https://<your-site>/api/health`. It should say `{"ok":true}`. Then try **Log In / Sign Up** in the game.
+
+Until the database is connected, the game still works with browser saves. The login box tells players accounts aren't available and shows you the setup hint.
+
+**What the server does:** PINs and recovery codes are stored only as slow salted hashes. After 10 wrong tries a code is locked for 15 minutes. Logins use random session tokens that last 180 days, and resetting a PIN logs out every other device. Each player keeps only their best leaderboard entry. These limits live in `LIMITS` in `api/_lib.js`.
 
 Static hosts serve every file in the repo, so `SPEC.md` and `NOTES.md` will be public too. To keep them private, list them in a `.vercelignore` file.
+
+### Other static hosts
+
+Netlify, GitHub Pages and similar hosts can serve `index.html` as is. There's no save server there, so it's browser saves only.
