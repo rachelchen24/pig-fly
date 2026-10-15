@@ -82,7 +82,7 @@ Tested with the balance tool (thousands of simulated flights) and with headless 
 | Right 3 pass without overshooting; wrong 3 fail | ⚠️ **Partly.** With **no steering**, exactly one wing option lands on every level 2–10, and the other two fail (one short, one over); rockets behave the same, except on level 6, where the rocket tier is a level old. **With good steering**, many wrong picks can still be rescued on levels 3–7, and "too good" wings can usually be braked onto the hill. Right-3 combos pass. |
 | Half-category upgrades can pass | ✅ Just-Length and just-Height routes pass from level 3; just-Rocket and just-Fuel routes from level 5 (just-Rocket isn't needed on level 10). |
 | Level 10 beatable with mid-tier gear | ✅ Reference gear is Wings T6, Seesaw 4, Rig 2, Rocket 3, 10-gallon tank, Milk Can. |
-| One level's payout = 3 upgrades | ✅ e.g. L1 pays 120 = 3 × 40. |
+| One level's payout = 3 upgrades | ✅ from level 3 on (e.g. L3 pays 228 = 3 × 76). **Changed at your request:** L1 pays 56 (1 × 40 + 16 cushion) and L2 pays 132 (2 × 55 + 22 cushion), since level 2 has only 1 category and level 3 only 2. |
 | Bad combos fail as described, incl. overshoot | ✅ Maxing every category overshoots from level 6 on. On levels 4–5 a skilled player can still land a maxed pig (e.g. by not firing the rocket). |
 | Categories unlock in exact order | ✅ Wings 2, Seesaw 3, Rig 4, Rockets 5, Powerups 6, Payload + obstacles 7. |
 | Tier caps: no skipping, catch-up, nothing past cap | ✅ Tested (matches the spec's level-4 wings example exactly). |
@@ -156,7 +156,7 @@ These were tested headlessly against an in-memory copy of the database, plus one
 
 ## Defaults I picked (spec left these open)
 - **Prices:** one upgrade costs 40, 55, 76, 105, 145, 200, 276, 381, 526 on levels 2–10; Endless tier = 726 × 1.5. A tier's price is set by the level it belongs to (wing tier 3 always costs the level-4 price), so catching up on old tiers is cheaper.
-- **Payout:** 3 × the **next** level's upgrade price, so you can actually afford 3 upgrades for the level you're about to play.
+- **Payout:** 3 × the **next** level's upgrade price, so you can actually afford 3 upgrades for the level you're about to play. **Exception (your request):** never more upgrades than the next level has shop categories, so 1× before level 2 and 2× before level 3. While under 3×, a cushion of 0.4 × one upgrade is added: exactly what selling back one wrong pick loses, so one wrong wing can't strand you with no way to earn money (replays pay ~1 coin there). Set `CONFIG.economy.mistakeCushion` to 0 to remove it, or `payoutPerCategory` to false to go back to the spec's flat 3×.
 - **Coins on the route:** ~1.7% of an upgrade's price per run (1 coin early, ~5–7 by level 8–10).
 - **Fuel burn:** 0.25 s per gallon (1 gal = 0.25 s … 20 gal = 5 s, 30 gal = 7.5 s).
 - **Obstacle ramp:** the spec's default (more obstacles each level). Strengths L7 [1], L8 [1,1], L9 [1,2,1], L10 [2,1,1,2], so you need a Pumpkin at 7 and a Milk Can at 9. Anvil / Wrecking Ball / Cow Bell matter in Fly Infinitely, where obstacles get stronger with distance.
