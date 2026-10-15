@@ -162,6 +162,8 @@ These were tested headlessly against an in-memory copy of the database, plus one
   - **Tutorial:** the first-flight tip says to stop between the flags (center pays most); after clearing level 1 it says whether you got the top payout.
 - **Shop tiers (your request):** each wing/rocket tier is its own tinted panel with a Tier badge, price and "✓ owned"; not-yet-buyable tiers are dashed and faded. Linear tracks get striped rows with tier-number pills.
 - **Powerups (your request):** in level mode they never spawn past the hill; the latest spot is `CONFIG.powerups.hillGap` (5 m) before the hill starts. Tested 720 spawns with overpowered gear: none past the hill.
+- **Pig name (your request):** Start New Game opens a "Name your pig" box; blank = **Snowball** (`CONFIG.pig`). Saved with the run (and copied into the Fly Infinitely save); old saves show Snowball. Used in the shop name tag, results title, tutorial and ending. Shown as plain text, so typed HTML does nothing. Not filtered for rude words since only the player sees it.
+- **Web icon (your request):** a pink pig face, embedded as an inline SVG favicon (works for the local file too), and the published page's tab icon is set to "pig".
 - **Coins on the route:** ~1.7% of an upgrade's price per run (1 coin early, ~5–7 by level 8–10).
 - **Fuel burn:** 0.25 s per gallon (1 gal = 0.25 s … 20 gal = 5 s, 30 gal = 7.5 s).
 - **Obstacle ramp:** the spec's default (more obstacles each level). Strengths L7 [1], L8 [1,1], L9 [1,2,1], L10 [2,1,1,2], so you need a Pumpkin at 7 and a Milk Can at 9. Anvil / Wrecking Ball / Cow Bell matter in Fly Infinitely, where obstacles get stronger with distance.

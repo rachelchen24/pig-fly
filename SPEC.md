@@ -316,6 +316,7 @@ Buttons depend on who's playing:
 - **"Fly Infinitely"** (endless mode) **never shows until the player has beaten the game**, and it has to actually work when it does. *(Final button name TBD.)*
 - **Beating the game is remembered permanently.** A logged-in player who has beaten it can always go back to Fly Infinitely, with the equipment they left off with.
 - **Start New Game while logged in:** the level run starts **from scratch: level 1, no gear.** Your **leaderboard score stays**.
+- **Name your pig.** Start New Game asks the player to name their pig (up to 16 characters). Leaving it blank names the pig **Snowball**. The name shows in the shop, on the results screen, in the tutorial and in the ending. It is private to the player (not on the leaderboard).
 - **The level run and Fly Infinitely are saved separately.** Starting a new game **never touches** your Fly Infinitely save; you can always go back to it.
 
 ### Tutorial
