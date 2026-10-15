@@ -99,6 +99,12 @@
 - **There's always more than one way to pass.**
 - **Half-category upgrades count.** You can pass by upgrading only half the seesaw (just Length or just Height), or only the Rocket, or only the Fuel tank, as long as you pick the right option.
 - **You never need the best gear to win.** Level 10 is beatable with mid-tier gear, e.g. tier 5 wings, tier 4 seesaw, tier 5 fuel. Top tiers are a choice, not a requirement.
+- **Landing accuracy sets the payout.** Two flags mark the ends of the landing zone. The closer to **dead center between the flags** the pig comes to a stop, the bigger the level's first-clear payout (see Pricing). Stopping right at a flag still passes, but pays less.
+
+### Shop screen
+- **The shop takes up the whole page**, not half of it, so the options are big and easy to compare.
+- A small live preview of the pig wearing its equipped gear sits in the shop header.
+- **Tiers are clearly separated.** Each wing/rocket tier is its own panel with a "Tier N" badge and its price; tiers you can't buy yet look faded. Linear tracks (seesaw, launch rig, fuel tank, payload) show striped rows with tier numbers.
 
 ### Gear categories
 Based on the Learn to Fly series shops:
@@ -183,6 +189,9 @@ While Step 2 is being tested (before Step 3 exists), passing level 5 unlocks not
 - **You can equip any lower-tier gear you've bought**, in level mode and in Fly Infinitely. For example, drop back to an older glider if your new one overshoots.
 - **In level mode you can also buy the other options of earlier tiers**, but it won't help: going *backwards* in equipment makes the pig worse off.
 - Selling (60% back) still works the same.
+- **You can sell any gear you own**, not just the most recent purchase: older tiers too.
+  - "No skipping" only applies to **buying**: it checks the highest tier you've ever bought, so selling old gear never blocks the next tier.
+  - A sold tier on a linear track (seesaw, launch rig, fuel tank, payload) shows **Buy back** at its full price.
 
 ### How gear combinations play out
 Each slot covers a weakness in the others:
@@ -204,9 +213,15 @@ Each slot covers a weakness in the others:
 *(Current direction; the designer may change pricing later.)*
 - Gear starts cheap, and **prices go up each level**.
 - **"One upgrade"** = one tier of one category at that level's price. Seesaw Length + Height together = one upgrade. Rocket + Fuel tank together = one upgrade.
-- **Level payout = 3× the cost of one upgrade** at that level.
+- **Level payout = up to 3× the cost of one upgrade** at that level.
   - You only **need 2** to pass, so the third is a cushion: if you blunder, you still have some money.
   - You *can* spend it on a 3rd upgrade. The right 3 still pass; the wrong 3 fail.
+- **The payout depends on how well you land.** Stopping **dead center between the flags pays 3×**. Stopping at the **edge (at either flag) pays about 2.5×**. In between scales smoothly.
+- **Early levels pay less, because there's less to buy.** Never pay for more upgrades than the next level has shop categories:
+  - Before level 2 (only Wings open): **1× one upgrade**.
+  - Before level 3 (Wings + Seesaw open): **2×**.
+  - From level 4 on (3+ categories): the normal 2.5–3×.
+  - On these 1× and 2× levels, add a small cushion that covers **exactly one wrong-pick sell-back** (40% of one upgrade), so a single wrong pick can never leave the player stuck. Landing accuracy adds up to 1/6 extra on top, the same share it swings on later levels.
 
 ### Selling gear
 - Gear sells back for **60%** of its price. Anything higher, like 75%, is too forgiving.
@@ -232,7 +247,9 @@ Each slot covers a weakness in the others:
 - [ ] The right 3 upgrades pass without overshooting; the wrong 3 fail.
 - [ ] Passing works with half-category upgrades (just Length, just Height, just Rocket, or just Fuel).
 - [ ] Level 10 is beatable with mid-tier gear.
-- [ ] One level's payout = 3 upgrades.
+- [ ] One level's payout = 3 upgrades for a dead-center landing, about 2.5 for one at a flag (from level 3 on).
+- [ ] Clearing level 1 pays about 1 upgrade and level 2 about 2, plus enough to fix one wrong pick.
+- [ ] The results screen shows how centered the landing was.
 - [ ] Bad combos fail in the ways described above, including overshooting.
 - [ ] Categories unlock in the exact order above.
 - [ ] Tier caps work: no skipping, catch-up allowed, nothing past the cap.
@@ -244,6 +261,7 @@ Each slot covers a weakness in the others:
 - [ ] Rockets only fire while Space is held; fuel refills for free each flight.
 - [ ] A pig without enough payload drops into the water when it hits an obstacle.
 - [ ] Bought gear stays owned, and lower tiers can be re-equipped (until sold).
+- [ ] Any owned gear can be sold, including older tiers, and selling never blocks buying the next tier.
 - [ ] Progress autosaves; there's no Save button.
 - [ ] Ramming through with payload uses no extra fuel; flying over costs a lot more fuel.
 
@@ -257,6 +275,8 @@ Each slot covers a weakness in the others:
 - Paid for with **coins**, like everything else.
 - Bought in the shop **before a run**. Each one is placed at a **random spot along the flight route**.
 - **Placement:** never so high or low that the pig can't get near it, but it can land where it **doesn't help much**.
+- **Never beyond the landing hill** in level mode: every powerup spawns before the hill starts.
+- **Never tell the player that some will be duds.** In-game text just says each powerup appears at a random spot along the route.
 - **Duds happen naturally**, and you don't know until you fly:
   - It's somewhere you never reach.
   - You're going too fast early on to steer into it.
@@ -303,6 +323,7 @@ Buttons depend on who's playing:
   - e.g. "Click **Launch** to fling your pig." / "Press **↑** to tilt up." / "Click **Wings** to see your upgrade options."
 - **Easy to get out of:** a visible **End tutorial** option at every step. Players who already know how to play are never stuck in it.
 - It walks through level 1 (the demo stage) and the first shop visit.
+- **It explains the perfect landing spot:** stop between the two flags, and dead center pays the most. After the first clear it says whether the landing got the top payout.
 - **It introduces each new feature when it unlocks**: wings, seesaw, launch rig, rockets (they aim where the pig points), payload and obstacles, powerups, Fly Infinitely.
 - **Obstacle + payload tip (required, at level 7):** you can **fly over** obstacles **or ram through** them with payload. **Ramming through takes no more fuel than normal flying; flying over takes extra fuel.**
 - *(proposed)* Replayable from the main menu.
@@ -407,6 +428,10 @@ Buttons depend on who's playing:
 - Turning payload into ballast instead of using it to smash obstacles.
 - Payout covering "about half of all upgrades" (replaced).
 - Payout of 2.5× one upgrade (replaced: 3×, so a blunder still leaves some money).
+- A flat 3× payout on every level (replaced: early levels pay 1× and 2× because there's less to buy, and landing accuracy moves it between 2.5× and 3×).
+- A half-page shop (replaced: the shop fills the whole page).
+- Only letting the player sell their newest tier (replaced: any owned gear can be sold).
+- Powerups spawning anywhere along the predicted path, including past the hill (replaced: always before the hill).
 - Fuel tank items named after containers like Water Bottle and Gas Can (replaced: named by gallons).
 - Starting with basic wings (rejected: the pig starts with no wings).
 - Pushing obstacles to a later version (replaced: obstacles + payload start at level 7, right after powerups).

@@ -35,13 +35,13 @@ The accounts and leaderboard code sits in its own block (search for `ACCOUNTS + 
 
 | Section | Starts at line ~ |
 |---|---|
-| **CONFIG**: every tuning number (physics, launch, gear stats, levels, unlocks, prices, coins, powerups, endless, view) | 104 |
-| CATALOG: all gear names + descriptions (rename freely) | 267 |
-| Flight simulation (no drawing) | 300 |
-| Economy rules (prices, caps, payouts) | 518 |
-| Art (all drawing code) | 541 |
-| Accounts + leaderboard (Step 5) | 1074 |
-| Game (menus, shop, tutorial, flight loop, results, ending, endless) | 1317 |
+| **CONFIG**: every tuning number (physics, launch, gear stats, levels, unlocks, prices, coins, powerups, endless, view) | 110 |
+| CATALOG: all gear names + descriptions (rename freely) | 273 |
+| Flight simulation (no drawing) | 307 |
+| Economy rules (prices, caps, payouts) | 525 |
+| Art (all drawing code) | 562 |
+| Accounts + leaderboard (Step 5) | 1095 |
+| Game (menus, shop, tutorial, flight loop, results, ending, endless) | 1338 |
 
 In CONFIG, `(proposed)` marks values taken from the spec's proposed defaults, and `[default]` marks numbers the spec left open that I picked. The wing stats are designer-friendly: `glide` (glide ratio), `cruise` (preferred speed, m/s) and `steady` (how firmly it holds its glide). `wings.right` / `rockets.right` record which option (0=A, 1=B, 2=C) is "right" for each tier, and the slot varies by tier.
 
@@ -82,14 +82,14 @@ Tested with the balance tool (thousands of simulated flights) and with headless 
 | Right 3 pass without overshooting; wrong 3 fail | ⚠️ **Partly.** With **no steering**, exactly one wing option lands on every level 2–10, and the other two fail (one short, one over); rockets behave the same, except on level 6, where the rocket tier is a level old. **With good steering**, many wrong picks can still be rescued on levels 3–7, and "too good" wings can usually be braked onto the hill. Right-3 combos pass. |
 | Half-category upgrades can pass | ✅ Just-Length and just-Height routes pass from level 3; just-Rocket and just-Fuel routes from level 5 (just-Rocket isn't needed on level 10). |
 | Level 10 beatable with mid-tier gear | ✅ Reference gear is Wings T6, Seesaw 4, Rig 2, Rocket 3, 10-gallon tank, Milk Can. |
-| One level's payout = 3 upgrades | ✅ from level 3 on (e.g. L3 pays 228 = 3 × 76). **Changed at your request:** L1 pays 56 (1 × 40 + 16 cushion) and L2 pays 132 (2 × 55 + 22 cushion), since level 2 has only 1 category and level 3 only 2. |
+| One level's payout = 3 upgrades | ✅ from level 3 on, for a dead-center landing (L3 pays 190–228 = 2.5–3 × 76). **Changed at your request:** L1 pays 56–63 and L2 pays 132–150, since level 2 has only 1 category and level 3 only 2. Tested in the browser: a level-1 landing 36% centered paid 58. |
 | Bad combos fail as described, incl. overshoot | ✅ Maxing every category overshoots from level 6 on. On levels 4–5 a skilled player can still land a maxed pig (e.g. by not firing the rocket). |
 | Categories unlock in exact order | ✅ Wings 2, Seesaw 3, Rig 4, Rockets 5, Powerups 6, Payload + obstacles 7. |
 | Tier caps: no skipping, catch-up, nothing past cap | ✅ Tested (matches the spec's level-4 wings example exactly). |
 | 3 wing/rocket options look clearly different | ✅ Each of the 30 wings and 21 rockets has its own drawing and trail effect. |
 | Seesaw halves and rocket + fuel each ≈ one upgrade | ✅ e.g. 28 + 28 vs 55; 79 + 26 vs 105. |
 | Replaying doesn't pile up money | ✅ Payout once; replays only give ~1–6 coins. |
-| Sell back a wrong pick, and it stings | ✅ 60% back. |
+| Sell back a wrong pick, and it stings | ✅ 60% back. **Changed at your request:** any owned gear can be sold, not just the newest tier. No-skipping checks the highest tier ever bought, so selling never blocks the next tier; sold linear tiers show **Buy back** at full price. Tested: sold T1 and T2 wings, then T3 was still buyable; sold seesaw tiers 1 and 2, then bought tier 1 back. |
 | Obstacles + payload unlock together at 7, ramp slowly, ≥5 s apart | ✅ 1/2/3/4 obstacles; gaps 5.7–6.8 s even with faster gear. |
 | Rockets only fire while Space held; fuel refills free | ✅ |
 | Pig without enough payload drops into the water | ✅ "BONK", falls, splash. |
@@ -156,7 +156,12 @@ These were tested headlessly against an in-memory copy of the database, plus one
 
 ## Defaults I picked (spec left these open)
 - **Prices:** one upgrade costs 40, 55, 76, 105, 145, 200, 276, 381, 526 on levels 2–10; Endless tier = 726 × 1.5. A tier's price is set by the level it belongs to (wing tier 3 always costs the level-4 price), so catching up on old tiers is cheaper.
-- **Payout:** 3 × the **next** level's upgrade price, so you can actually afford 3 upgrades for the level you're about to play. **Exception (your request):** never more upgrades than the next level has shop categories, so 1× before level 2 and 2× before level 3. While under 3×, a cushion of 0.4 × one upgrade is added: exactly what selling back one wrong pick loses, so one wrong wing can't strand you with no way to earn money (replays pay ~1 coin there). Set `CONFIG.economy.mistakeCushion` to 0 to remove it, or `payoutPerCategory` to false to go back to the spec's flat 3×.
+- **Payout:** up to 3 × the **next** level's upgrade price, so you can actually afford 3 upgrades for the level you're about to play.
+  - **Landing accuracy (your request):** stopping dead center between the flags pays 3×, stopping at a flag pays 2.5×, linear in between. Measured where the pig stops after skidding. `CONFIG.economy.edgePayoutUpgrades`.
+  - **Early levels (your request):** never more upgrades than the next level has shop categories, so 1× before level 2 and 2× before level 3. There, a cushion of 0.4 × one upgrade is added (exactly what selling back one wrong pick loses), so one wrong wing can't strand you with no way to earn money (replays pay ~1 coin there). Accuracy adds up to 1/6 on top instead of taking away, so even a flag-edge landing leaves the swap money. Set `mistakeCushion` to 0 to remove the cushion, or `payoutPerCategory` to false for 2.5–3× everywhere.
+  - **Tutorial:** the first-flight tip says to stop between the flags (center pays most); after clearing level 1 it says whether you got the top payout.
+- **Shop tiers (your request):** each wing/rocket tier is its own tinted panel with a Tier badge, price and "✓ owned"; not-yet-buyable tiers are dashed and faded. Linear tracks get striped rows with tier-number pills.
+- **Powerups (your request):** in level mode they never spawn past the hill; the latest spot is `CONFIG.powerups.hillGap` (5 m) before the hill starts. Tested 720 spawns with overpowered gear: none past the hill.
 - **Coins on the route:** ~1.7% of an upgrade's price per run (1 coin early, ~5–7 by level 8–10).
 - **Fuel burn:** 0.25 s per gallon (1 gal = 0.25 s … 20 gal = 5 s, 30 gal = 7.5 s).
 - **Obstacle ramp:** the spec's default (more obstacles each level). Strengths L7 [1], L8 [1,1], L9 [1,2,1], L10 [2,1,1,2], so you need a Pumpkin at 7 and a Milk Can at 9. Anvil / Wrecking Ball / Cow Bell matter in Fly Infinitely, where obstacles get stronger with distance.

@@ -33,7 +33,7 @@
   #shop .head { display: flex; gap: 16px; align-items: center; }
   #shop .head .info { flex: 1; }
   #shopPreview { width: 230px; height: 120px; background: linear-gradient(#bfe6fb, #e8f6fd); border-radius: 12px; flex: none; }
-  .tiergrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 6px 18px; }
+  .tiergrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 18px 22px; }
   .tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px; align-items: start; }
   #shop .head { padding: 12px 16px 10px; border-bottom: 2px dashed #ead9c4; }
   #shop .coins { font-size: 28px; font-weight: bold; color: #a87900; }
@@ -42,8 +42,15 @@
   #shop .tabs button.on { background: var(--pink); color: #fff; }
   #shop .body { flex: 1; overflow-y: auto; padding: 14px 18px; font-size: 16px; }
   #shop .foot { padding: 10px 12px; border-top: 2px dashed #ead9c4; display: flex; gap: 8px; align-items: center; }
-  .tier { margin-bottom: 12px; }
-  .tier .tt { font-weight: bold; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.75; margin: 4px 0; }
+  /* each tier is its own panel so neighbouring tiers never blend together */
+  .tier { background: #f6e3cc; border: 2px solid #dcbf9c; border-radius: 16px; padding: 10px 12px 12px; box-shadow: 0 3px 0 rgba(120,80,40,0.15); }
+  .tier.later { background: transparent; border-style: dashed; box-shadow: none; opacity: 0.6; }
+  .tier .tt { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid #dcbf9c; }
+  .tier .tt .price { margin-left: auto; font-size: 17px; }
+  .tbadge { background: var(--pinkd); color: #fff; font-weight: bold; font-size: 17px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 12px; border-radius: 999px; }
+  .tier.later .tbadge { background: #a1887f; }
+  .tstate { font-size: 13px; font-weight: bold; color: #2e7d32; }
+  .tnum { display: inline-block; min-width: 24px; text-align: center; font-size: 12px; font-weight: bold; color: #fff; background: var(--pinkd); border-radius: 999px; padding: 1px 6px; margin-right: 8px; }
   .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .opt { background: #fff; border-radius: 14px; padding: 8px; text-align: center; border: 3px solid transparent; font-size: 14px; }
   .opt.eq { border-color: #66bb6a; }
@@ -57,8 +64,10 @@
   .pip { display: inline-block; width: 9px; height: 9px; border-radius: 5px; background: #e0d3c3; margin-right: 1px; }
   .pip.on { background: #ef8fb0; }
   .track { background: #fff; border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
-  .track .ti { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1e6d8; font-size: 16px; }
-  .track .ti:last-child { border-bottom: none; }
+  .track .ti { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 16px; }
+  .track .ti:nth-of-type(odd) { background: #f8ecdd; }
+  .track .ti.eq { outline: 2px solid #66bb6a; outline-offset: -2px; }
+  .track b { display: block; margin-bottom: 6px; }
   .track .ti .n { flex: 1; }
   .track .ti.eq .n { color: #2e7d32; font-weight: bold; }
   .track .ti button { padding: 5px 12px; font-size: 14px; border-radius: 9px; }
@@ -233,6 +242,9 @@ const CONFIG = {
     payoutUpgrades: 3,           // first clear of a level pays 3x one upgrade (at the next level's price)...
     payoutPerCategory: true,     // [user request] ...but never more upgrades than there are shop categories open on the next level
                                  //   (level 2 has only Wings -> 1x, level 3 Wings+Seesaw -> 2x, level 4+ -> 3x)
+    edgePayoutUpgrades: 2.5,     // [user request] landing dead center between the flags pays the full payoutUpgrades (3x);
+                                 //   stopping right at a flag pays only this many (2.5x). Linear in between.
+                                 //   Early levels (1x/2x) can't drop below what you need, so there centering ADDS the same 1/6 as a bonus.
     mistakeCushion: 0.4,         // [default] while paying under 3x, add this share of one upgrade: exactly the 40% lost selling back
                                  //   one wrong pick, so a wrong wing on level 2/3 can't leave you stuck. Set 0 for no cushion.
     sellBack: 0.6,               // sell gear back for 60%
@@ -250,6 +262,7 @@ const CONFIG = {
     pickupRadius: 4,             // [default]
     placeMinX: 25,               // [default] earliest spot along the route (m)
     placeMaxShare: 1.15,         // [default] latest spot = this share of where your gear naturally lands
+    hillGap: 5,                  // [user request] levels: never past the landing hill; latest spot = this many m before the hill starts
     heightJitter: [0.55, 1.45],  // [default] multiple of your expected height there (some will be out of reach)
     coinTable: [{ min: 0, max: 5, chance: 80 }, { min: 6, max: 9, chance: 15 }, { min: 10, max: 20, chance: 5 }],
   },
@@ -538,11 +551,18 @@ function tierCap(cat, level, endless) {
 }
 // Shop categories open on a level (seesaw counts once; powerups count as a category).
 function openCategories(level) { return Object.values(CONFIG.unlocks).filter(u => u <= level).length; }
-function levelPayout(level) {
+// How centered the pig stopped between the two flags: 1 = dead center, 0 = at (or past) a flag.
+function landingAccuracy(hill, x) {
+  const half = hill.w / 2 - 1.5; // flags stand 1.5 m in from each edge
+  return clamp(1 - Math.abs(x - (hill.x + hill.w / 2)) / half, 0, 1);
+}
+// accuracy defaults to 1 (the most a level can pay).
+function levelPayout(level, accuracy = 1) {
   const E = CONFIG.economy, price = E.upgradeCost[Math.min(11, level + 1)];
-  if (!E.payoutPerCategory) return E.payoutUpgrades * price;
-  const n = Math.min(E.payoutUpgrades, openCategories(level + 1));
-  return Math.round(n * price + (n < E.payoutUpgrades ? E.mistakeCushion * price : 0));
+  const swing = 1 - E.edgePayoutUpgrades / E.payoutUpgrades; // share of the payout that depends on aim (1/6)
+  const n = E.payoutPerCategory ? Math.min(E.payoutUpgrades, openCategories(level + 1)) : E.payoutUpgrades;
+  if (n >= E.payoutUpgrades) return Math.round(n * price * (1 - swing * (1 - accuracy)));
+  return Math.round(n * price * (1 + swing * accuracy) + E.mistakeCushion * price); // floor = gear + one wrong-pick swap
 }
 function coinsForLevel(level) { return Math.max(1, Math.round(CONFIG.economy.upgradeCost[Math.max(2, level)] * CONFIG.coins.perRunShare)); }
 function powerupCost(n) { return CONFIG.powerups.firstCost * Math.pow(CONFIG.powerups.costMult, n); }
@@ -1395,29 +1415,30 @@ function unlockAfterText(cat, t) {
 }
 // option categories (wings, rocket)
 function ownsTier(cat, t) { const o = prof().owned[cat]; return [0, 1, 2].some(k => o[`${t}-${k}`]); }
+// Highest tier ever bought in an option category. Selling gear never lowers it, so you can sell anything and still buy the next tier.
+function reachedTier(cat) {
+  const p = prof(), owned = Object.keys(p.owned[cat]).map(k => parseInt(k));
+  return Math.max((p.reached && p.reached[cat]) || 0, ...owned, 0);
+}
 function canBuyOpt(cat, t, o) {
   const p = prof();
   if (p.owned[cat][`${t}-${o}`]) return { ok: false };
   if (t > cap(cat)) return { ok: false, why: unlockAfterText(cat, t) };
-  if (t > 1 && !ownsTier(cat, t - 1)) return { ok: false, why: `Buy a tier ${t - 1} first` };
+  if (t > 1 && reachedTier(cat) < t - 1) return { ok: false, why: `Buy a tier ${t - 1} first` };
   const price = tierPrice(cat, t);
   if (p.money < price) return { ok: false, why: 'Not enough coins', price };
   return { ok: true, price };
 }
-function canSellOpt(cat, t, o) {
-  const p = prof(); if (!p.owned[cat][`${t}-${o}`]) return false;
-  const others = [0, 1, 2].filter(k => k !== o && p.owned[cat][`${t}-${k}`]).length;
-  return others > 0 || !ownsTier(cat, t + 1); // can't pull out the only tier under a higher one (no skipping)
-}
+function canSellOpt(cat, t, o) { return !!prof().owned[cat][`${t}-${o}`]; } // anything you own can be sold
 function buyOpt(cat, t, o) {
   const c = canBuyOpt(cat, t, o); if (!c.ok) return;
-  const p = prof(); p.money -= c.price; p.owned[cat][`${t}-${o}`] = true; p.equipped[cat === 'wings' ? 'wings' : 'rocket'] = `${t}-${o}`;
+  const p = prof(); p.money -= c.price; p.owned[cat][`${t}-${o}`] = true; p.reached = p.reached || {}; p.reached[cat] = Math.max(reachedTier(cat), t); p.equipped[cat === 'wings' ? 'wings' : 'rocket'] = `${t}-${o}`;
   if (cat === 'rocket' && p.owned.fuel === 0) p.equipped.fuel = 0;
   persist(); tutEvent('bought', cat); renderShop();
 }
 function sellOpt(cat, t, o) {
   if (!canSellOpt(cat, t, o)) return;
-  const p = prof(); const key = `${t}-${o}`; delete p.owned[cat][key]; p.money += sellPrice(cat, t);
+  const p = prof(); const key = `${t}-${o}`; p.reached = p.reached || {}; p.reached[cat] = reachedTier(cat); delete p.owned[cat][key]; p.money += sellPrice(cat, t);
   const slot = cat === 'wings' ? 'wings' : 'rocket';
   if (p.equipped[slot] === key) p.equipped[slot] = bestOwnedOpt(cat);
   persist(); renderShop();
@@ -1432,8 +1453,23 @@ function canBuyLin(cat) {
   if (p.money < price) return { ok: false, t, why: 'Not enough coins', price };
   return { ok: true, t, price };
 }
+// Linear tracks: owned[cat] = highest tier bought. Any tier 1..owned can be sold; it's then flagged in p.sold and can be bought back.
+function isSoldLin(cat, t) { const s = prof().sold; return !!(s && s[cat] && s[cat][t]); }
+function hasLin(cat, t) { return t === 0 || (t <= prof().owned[cat] && !isSoldLin(cat, t)); }
+function bestLin(cat) { for (let t = prof().owned[cat]; t > 0; t--) if (hasLin(cat, t)) return t; return 0; }
+function sellLinTier(cat, t) {
+  if (t < 1 || !hasLin(cat, t)) return;
+  const p = prof(); p.sold = p.sold || {}; p.sold[cat] = p.sold[cat] || {};
+  p.sold[cat][t] = true; p.money += sellPrice(cat, t);
+  if (p.equipped[cat] === t) p.equipped[cat] = bestLin(cat);
+  persist(); renderShop();
+}
+function buyBackLin(cat, t) {
+  const p = prof(), price = tierPrice(cat, t);
+  if (!isSoldLin(cat, t) || p.money < price) return;
+  p.money -= price; delete p.sold[cat][t]; p.equipped[cat] = t; persist(); renderShop();
+}
 function buyLin(cat) { const c = canBuyLin(cat); if (!c.ok) return; const p = prof(); p.money -= c.price; p.owned[cat] = c.t; p.equipped[cat] = c.t; persist(); tutEvent('bought', cat); renderShop(); }
-function sellLin(cat) { const p = prof(), t = p.owned[cat]; if (t < 1) return; p.money += sellPrice(cat, t); p.owned[cat] = t - 1; if (p.equipped[cat] > t - 1) p.equipped[cat] = t - 1; persist(); renderShop(); }
 function equip(slot, val) { prof().equipped[slot] = val; persist(); renderShop(); }
 // what the pig actually flies with (locked categories are always off)
 function activeEquipped() {
@@ -1533,7 +1569,7 @@ function renderShop() {
     head.append(el('div', { class: 'row', style: 'justify-content:space-between' }, el('div', { class: 'row' }, sel, el('span', { class: 'muted' }, 'Hill: ' + hillRange(SAVE.run.selected))), el('div', { class: 'coins', id: 'coins' }, '🪙 ' + p.money)));
     if (SAVE.run.selected === 1) head.append(el('div', { class: 'muted' }, 'Level 1 is the demo stage: no wings, no upgrades, just the catapult.'));
     else if (SAVE.run.cleared[SAVE.run.selected]) head.append(el('div', { class: 'muted' }, 'Replay: the level payout only pays on the first clear.'));
-    else head.append(el('div', { class: 'muted' }, 'First clear pays 🪙 ' + levelPayout(SAVE.run.selected)));
+    else head.append(el('div', { class: 'muted' }, `First clear pays 🪙 ${levelPayout(SAVE.run.selected, 0)}–${levelPayout(SAVE.run.selected)}: stop the pig between the flags, dead center pays most.`));
   } else {
     head.append(el('div', { class: 'row', style: 'justify-content:space-between' }, el('b', { style: 'font-size:20px' }, 'Fly Infinitely'), el('div', { class: 'coins', id: 'coins' }, '🪙 ' + p.money)));
     head.append(el('div', { class: 'muted' }, `Best: ${Math.round(SAVE.bestEndless || 0)} m · markers every ${CONFIG.endless.milestoneEvery} m pay once · click Unequip to switch gear off`));
@@ -1580,7 +1616,11 @@ function optCategory(cat) {
   const outer = wrap; const grid = el('div', { class: 'tiergrid' }); outer.append(grid);
   for (let t = 1; t <= maxT; t++) {
     if (t > cap(cat) + 1 && t <= MAX_TIER[cat]) { outer.append(el('div', { class: 'lock', style: 'margin:6px 0' }, `Tiers ${t}–${MAX_TIER[cat]} unlock as you pass more levels.`)); break; }
-    const tier = el('div', { class: 'tier' }, el('div', { class: 'tt' }, t > MAX_TIER[cat] ? '★ Endless tier' : `Tier ${t}`, ' · ', el('span', { class: 'price' }, '🪙 ' + tierPrice(cat, t))));
+    const ownsTier = [0, 1, 2].some(o => p.owned[cat][`${t}-${o}`]);
+    const tier = el('div', { class: 'tier' + (t > cap(cat) ? ' later' : '') }, el('div', { class: 'tt' },
+      el('span', { class: 'tbadge' }, t > MAX_TIER[cat] ? '★ Endless tier' : `Tier ${t}`),
+      ownsTier ? el('span', { class: 'tstate' }, '✓ owned') : '',
+      el('span', { class: 'price' }, '🪙 ' + tierPrice(cat, t))));
     const opts = el('div', { class: 'opts' });
     for (let o = 0; o < 3; o++) {
       const key = `${t}-${o}`, owned = !!p.owned[cat][key];
@@ -1613,11 +1653,15 @@ function linTrack(cat) {
     if (cat === 'fuel' && t === 0 && !Object.keys(p.owned.rocket).length && mode === 'level') { }
     const name = CATALOG[cat === 'fuel' ? 'fuel' : cat][t] + (t > MAX_TIER[cat] ? ' ★' : '');
     const row = el('div', { class: 'ti' + (eqT === t ? ' eq' : '') });
-    row.append(el('span', { class: 'n' }, name, t === 0 ? el('span', { class: 'muted' }, cat === 'fuel' ? ' (comes with rockets)' : ' (start)') : ''));
-    if (t <= owned) {
+    row.append(el('span', { class: 'n' }, el('span', { class: 'tnum' }, t), name, t === 0 ? el('span', { class: 'muted' }, cat === 'fuel' ? ' (comes with rockets)' : ' (start)') : ''));
+    if (t <= owned && isSoldLin(cat, t)) {
+      const price = tierPrice(cat, t);
+      row.append(el('span', { class: 'muted' }, 'sold'), el('span', { class: 'price' }, '🪙 ' + price));
+      row.append(el('button', { class: 'gold', disabled: prof().money < price, on: { click: () => buyBackLin(cat, t) } }, 'Buy back'));
+    } else if (t <= owned) {
       if (eqT === t) row.append(el('span', { class: 'tag' }, 'EQUIPPED'));
       else row.append(el('button', { class: 'go', on: { click: () => equip(cat, t) } }, t === 0 && (cat === 'payload' || cat === 'launchRig') ? 'Use none' : 'Equip'));
-      if (t === owned && t > 0) row.append(el('button', { on: { click: () => sellLin(cat) } }, 'Sell 🪙' + sellPrice(cat, t)));
+      if (t > 0) row.append(el('button', { on: { click: () => sellLinTier(cat, t) } }, 'Sell 🪙' + sellPrice(cat, t)));
     } else if (t === owned + 1) {
       const c = canBuyLin(cat);
       row.append(el('span', { class: 'price' }, '🪙 ' + tierPrice(cat, t)));
@@ -1664,7 +1708,9 @@ function buildCourse(loadout) {
   // powerups: random spots along the route, never impossibly high or low, but often not helpful
   const n = prof().powerups || 0, PU = CONFIG.powerups;
   for (let i = 0; i < n; i++) {
-    const x = PU.placeMinX + Math.random() * Math.max(10, natEnd * PU.placeMaxShare - PU.placeMinX);
+    // in level mode never past the start of the landing hill (a gust beyond it is pointless)
+    const maxX = C.hill ? Math.min(natEnd * PU.placeMaxShare, C.hill.x - PU.hillGap) : natEnd * PU.placeMaxShare;
+    const x = PU.placeMinX + Math.random() * Math.max(10, maxX - PU.placeMinX);
     const y = Math.max(3, pathYAt(path, x) * (PU.heightJitter[0] + Math.random() * (PU.heightJitter[1] - PU.heightJitter[0])) + (Math.random() - 0.3) * 6);
     C.powerups.push({ x, y });
   }
@@ -1770,7 +1816,8 @@ function finishRun() {
   if (mode === 'level') {
     const L = flightLevel, run = SAVE.run;
     if (F.outcome === 'landed') {
-      if (!run.paid[L]) { res.payout = levelPayout(L); run.money += res.payout; run.paid[L] = true; res.first = true; }
+      res.accuracy = landingAccuracy(F.course.hill, F.endX);
+      if (!run.paid[L]) { res.payout = levelPayout(L, res.accuracy); run.money += res.payout; run.paid[L] = true; res.first = true; }
       run.cleared[L] = true;
       if (L === run.level && L < LEVEL_COUNT) { run.level = L + 1; res.unlockedNext = true; }
       if (L === LEVEL_COUNT && !run.completed) { ending = true; run.completed = true; }
@@ -1789,7 +1836,7 @@ function finishRun() {
 }
 function createEndlessSave() {
   const r = SAVE.run || freshRun();
-  SAVE.endless = { money: r.money, owned: JSON.parse(JSON.stringify(r.owned)), equipped: { ...r.equipped }, milestones: {}, powerups: 0 };
+  SAVE.endless = { money: r.money, owned: JSON.parse(JSON.stringify(r.owned)), sold: JSON.parse(JSON.stringify(r.sold || {})), reached: { ...(r.reached || {}) }, equipped: { ...r.equipped }, milestones: {}, powerups: 0 };
 }
 const OUTCOME_TEXT = {
   landed: ['Landed on the hill!', 'Nice and gentle. Level cleared.'],
@@ -1804,6 +1851,10 @@ function reasonText(res) {
   if (res.outcome === 'blocked') return `Bonked into a ${res.reason}. Your payload wasn't strong enough to smash it.`;
   return OUTCOME_TEXT[res.outcome][1];
 }
+function landingText(res) {
+  const a = Math.round((res.accuracy || 0) * 100);
+  return a >= 95 ? 'Bullseye! Dead center between the flags.' : 'Landing: ' + a + '% centered between the flags.';
+}
 function showResults(res) {
   clearUI();
   const ok = res.outcome === 'landed';
@@ -1814,8 +1865,8 @@ function showResults(res) {
       el('div', { class: 'line' }, reasonText(res)),
       el('div', { class: 'line muted' }, `Level ${res.level} hill: ${hillRange(res.level)}`));
     if (res.coins) card.append(el('div', { class: 'line' }, `Coins picked up: 🪙 ${res.coins}`));
-    if (res.payout) card.append(el('div', { class: 'line', style: 'font-size:20px;font-weight:bold;color:#a87900' }, `Level payout: 🪙 ${res.payout}`));
-    else if (ok) card.append(el('div', { class: 'line muted' }, 'Replay: no level payout (it only pays once).'));
+    if (res.payout) card.append(el('div', { class: 'line', style: 'font-size:20px;font-weight:bold;color:#a87900' }, `Level payout: 🪙 ${res.payout}`), el('div', { class: 'line muted' }, landingText(res)));
+    else if (ok) card.append(el('div', { class: 'line muted' }, 'Replay: no level payout (it only pays once). ' + landingText(res)));
     card.append(el('div', { class: 'line' }, el('b', null, 'Coins: 🪙 ' + SAVE.run.money)));
     const row = el('div', { class: 'row', style: 'justify-content:center;margin-top:12px' });
     if (ok && res.level < LEVEL_COUNT) row.append(el('button', { class: 'big go', id: 'btn-next', on: { click: () => { SAVE.run.selected = res.level + 1; persist(); enterHangar('level'); } } }, `Next: Level ${res.level + 1} ▶`));
@@ -1906,7 +1957,7 @@ function tutRefresh() {
   if (tutorEl && tutorEl.dataset.feature) return;
   if (T.guided === 0 && SAVE.run.selected === 1) showTutor('Click <b>Launch</b> to fling your pig off the seesaw.', '#btn-launch');
   else if (T.guided === 3) { if (shopTab !== 'wings' || !document.querySelector('.opt')) showTutor('Click <b>Wings</b> to see your upgrade options.', '#tab-wings'); else { T.guided = 4; persist(); tutRefresh(); } }
-  else if (T.guided === 4) showTutor('Click <b>Buy</b> on a wing. Only one of the three is right for this level. You can afford more than one, and you can sell a wrong pick back.', document.querySelector('.opt .buy:not(:disabled)') || '#tab-wings');
+  else if (T.guided === 4) showTutor('Click <b>Buy</b> on a wing. Only one of the three is right for this level. Picked wrong? Sell it back (you lose 40%) and you&rsquo;ll still have enough for another.', document.querySelector('.opt .buy:not(:disabled)') || '#tab-wings');
   else if (T.guided === 5) showTutor('Your new wings are equipped. Click <b>Launch</b> to try level 2!', '#btn-launch');
 }
 function tutEvent(ev, arg) {
@@ -1921,13 +1972,13 @@ function tutFlight(dt) {
   tutFlightT += dt;
   if (tutFlightStep === 1) { if (!tutorEl) showTutor('Press <span class="key">↑</span> to tilt up.', null, { top: 70 }); if (keys.ArrowUp || tutFlightT > 2.5) { tutFlightStep = 2; tutFlightT = 0; hideTutor(); } }
   else if (tutFlightStep === 2) { if (!tutorEl) showTutor('Press <span class="key">↓</span> to tilt down.', null, { top: 70 }); if (keys.ArrowDown || tutFlightT > 2.5) { tutFlightStep = 3; tutFlightT = 0; hideTutor(); } }
-  else if (tutFlightStep === 3) { if (!tutorEl) showTutor('Tilting only <b>redirects</b> your speed. It never adds any. Your gear does most of the work. Land on the hilltop!', null, { top: 70 }); if (tutFlightT > 3.5) { tutFlightStep = 0; hideTutor(); } }
+  else if (tutFlightStep === 3) { if (!tutorEl) showTutor('Tilting only <b>redirects</b> your speed. It never adds any. Your gear does most of the work. Land on the hilltop and stop <b>between the two flags</b>. Stopping dead center pays the most!', null, { top: 70 }); if (tutFlightT > 3.5) { tutFlightStep = 0; hideTutor(); } }
 }
 function tutResults(res) {
   if (!TUT_ON()) return;
   const T = SAVE.tut;
   if (T.guided === 1) {
-    if (res.outcome === 'landed') { T.guided = 2; persist(); showTutor('You passed level 1 and unlocked <b>wings</b>! Click <b>Next</b> to visit the shop.', '#btn-next'); }
+    if (res.outcome === 'landed') { T.guided = 2; persist(); showTutor('You passed level 1 and unlocked <b>wings</b>! ' + (res.accuracy >= 0.95 ? 'Perfect landing, so you got the biggest payout.' : 'Tip: the closer to the center between the flags you stop, the bigger a level&rsquo;s first-clear payout.') + ' Click <b>Next</b> to visit the shop.', '#btn-next'); }
     else showTutor('So close! Click <b>Retry</b> to fling the pig again.', '#btn-retry');
   }
 }
