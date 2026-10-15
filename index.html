@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>When Pigs Fly</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M10 22 L8 4 L26 14 Z' fill='%23e57399'/%3E%3Cpath d='M54 22 L56 4 L38 14 Z' fill='%23e57399'/%3E%3Ccircle cx='32' cy='35' r='25' fill='%23f8a5c2'/%3E%3Cellipse cx='32' cy='42' rx='13' ry='9.5' fill='%23f48fb1' stroke='%23c05b74' stroke-width='2'/%3E%3Cellipse cx='27' cy='42' rx='2.6' ry='3.6' fill='%238d3a55'/%3E%3Cellipse cx='37' cy='42' rx='2.6' ry='3.6' fill='%238d3a55'/%3E%3Ccircle cx='21' cy='27' r='3.6' fill='%233b2a20'/%3E%3Ccircle cx='43' cy='27' r='3.6' fill='%233b2a20'/%3E%3Ccircle cx='22.2' cy='25.8' r='1.2' fill='%23fff'/%3E%3Ccircle cx='44.2' cy='25.8' r='1.2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" id="favicon" href="data:,"> <!-- drawn at load from the in-game pig (makePigFavicon) -->
 <style>
   :root { --ink: #3b2a20; --paper: #fff8ee; --pink: #f48fb1; --pinkd: #c05b74; --green: #4caf50; --gold: #f5b800; --shadow: 0 4px 0 rgba(0,0,0,0.18); }
   * { box-sizing: border-box; }
@@ -910,6 +910,16 @@ function drawPig(g, opts) {
   ell(g, 0.62, 0.15, 0.1, 0.06, 'rgba(255,105,140,0.45)');
   g.beginPath(); g.arc(0.8, 0.2, 0.1, 0.2, 1.5); g.strokeStyle = '#a3445c'; g.lineWidth = 0.03; g.stroke();
   if (opts.payload && ART.payload[opts.payload]) ART.payload[opts.payload](g);
+}
+
+// ---------- browser-tab icon: the same side-view pig you fly, nose tipped up a little ----------
+function makePigFavicon() {
+  const link = document.getElementById('favicon'); if (!link) return;
+  const S = 64, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  g.translate(S / 2 - 1, S / 2 + 1); g.scale(S / 2.9, S / 2.9); g.rotate(-0.18); g.translate(0.07, 0.12); // pig spans x -1.35..1.21, y -0.92..0.69
+  drawPig(g, { t: 0, flap: 0 });
+  link.type = 'image/png'; link.href = cv.toDataURL('image/png');
 }
 
 // ---------- small preview canvases for the shop ----------
@@ -2224,6 +2234,7 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
+try { makePigFavicon(); } catch (e) { }
 showMenu();
 initAccounts();
 requestAnimationFrame(frame);

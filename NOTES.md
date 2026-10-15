@@ -15,7 +15,7 @@
 1. Open `index.html` and click **Start New Game**. Follow the tutorial through level 1 and the first shop visit. Does the launch feel good? Does the tilt feel slow but useful?
 2. Play levels 2–5 normally. Are the wrong wing picks fun to learn from, and does selling sting?
 3. Use `index.html?dev` to jump ahead: the shop gets **+1000** and **All lvls** buttons. Try level 7 (obstacle tip) and level 10 (ending → Fly Infinitely).
-4. The tuning numbers are all in the CONFIG block at the top of `index.html`, starting around line 104.
+4. The tuning numbers are all in the CONFIG block at the top of `index.html`, starting around line 110.
 
 **What didn't work (details under Checklist results):**
 - With good steering, a wrong wing pick can often still pass on levels 3–7. With no steering, the wrong picks fail as designed.
@@ -163,7 +163,7 @@ These were tested headlessly against an in-memory copy of the database, plus one
 - **Shop tiers (your request):** each wing/rocket tier is its own tinted panel with a Tier badge, price and "✓ owned"; not-yet-buyable tiers are dashed and faded. Linear tracks get striped rows with tier-number pills.
 - **Powerups (your request):** in level mode they never spawn past the hill; the latest spot is `CONFIG.powerups.hillGap` (5 m) before the hill starts. Tested 720 spawns with overpowered gear: none past the hill.
 - **Pig name (your request):** Start New Game opens a "Name your pig" box; blank = **Snowball** (`CONFIG.pig`). Saved with the run (and copied into the Fly Infinitely save); old saves show Snowball. Used in the shop name tag, results title, tutorial and ending. Shown as plain text, so typed HTML does nothing. Not filtered for rude words since only the player sees it.
-- **Web icon (your request):** a pink pig face, embedded as an inline SVG favicon (works for the local file too), and the published page's tab icon is set to "pig".
+- **Web icon (your request):** the side-view pig exactly as it looks in flight. It's drawn at page load with the game's own `drawPig` onto a 64×64 canvas and set as the favicon (`makePigFavicon` in the art section), so it always matches the in-game pig. The published page's gallery/tab icon is set to "pig".
 - **Coins on the route:** ~1.7% of an upgrade's price per run (1 coin early, ~5–7 by level 8–10).
 - **Fuel burn:** 0.25 s per gallon (1 gal = 0.25 s … 20 gal = 5 s, 30 gal = 7.5 s).
 - **Obstacle ramp:** the spec's default (more obstacles each level). Strengths L7 [1], L8 [1,1], L9 [1,2,1], L10 [2,1,1,2], so you need a Pumpkin at 7 and a Milk Can at 9. Anvil / Wrecking Ball / Cow Bell matter in Fly Infinitely, where obstacles get stronger with distance.
