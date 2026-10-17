@@ -285,6 +285,16 @@ const CONFIG = {
     heightJitter: [0.55, 1.45],  // [default] multiple of your expected height there (some will be out of reach)
     coinTable: [{ min: 0, max: 5, chance: 80 }, { min: 6, max: 9, chance: 15 }, { min: 10, max: 20, chance: 5 }],
   },
+  // ---------- LEADERBOARD ----------
+  leaderboard: {
+    // A posted Fly Infinitely distance must be at most: mult * (how far your gear flies with no steering) + perPowerup * powerups + slack.
+    // Anything above is treated as faked and not posted. Generous on purpose: skill and gusts add real distance.
+    plausibleMult: 2,            // [default]
+    plausiblePerPowerup: 300,    // [default] meters
+    plausibleSlack: 500,         // [default] meters
+    predictMaxSec: 3600,         // [default] simulate up to this long when predicting (long Fly Infinitely flights last many minutes)
+    maxPowerupsForOldBest: 5,    // [default] a best re-posted later (its powerup count unknown) is allowed this many powerups' worth
+  },
   endless: {
     milestoneEvery: 250,         // [default] meters between distance markers
     milestoneBase: 25,           // [default] pay = base + perMeter * marker distance (paid once each)
@@ -536,10 +546,10 @@ function rollPowerupCoins(rng) {
   return 0;
 }
 // No-input prediction of where a loadout flies (rockets held). Used to place coins and powerups near your route.
-function predictPath(loadout, maxX) {
+function predictPath(loadout, maxX, maxSec = 240) {
   const F = createFlight(loadout, { hill: null });
   const pts = [[F.x, F.y]];
-  for (let i = 0; i < 30 * 240 && F.phase !== 'done'; i++) {
+  for (let i = 0; i < 30 * maxSec && F.phase !== 'done'; i++) {
     stepFlight(F, { fire: true }, 1 / 30);
     if (i % 3 === 0) pts.push([F.x, F.y, F.t]);
     if (maxX && F.x > maxX) break;
@@ -1362,16 +1372,26 @@ function logOut() {
 
 // ---------- leaderboards ----------
 // Sanity check against faked scores: a distance far beyond what this gear can reach is not posted.
+// (The prediction must cover the whole flight: long Fly Infinitely flights run many minutes.)
 function plausibleDistance(dist, eq, powerups) {
-  const pts = predictPath(makeLoadout(eq));
+  const B = CONFIG.leaderboard;
+  const pts = predictPath(makeLoadout(eq), null, B.predictMaxSec);
   const natural = pts[pts.length - 1][0];
-  return dist <= natural * 1.6 + (powerups || 0) * 150 + 300;
+  return dist <= natural * B.plausibleMult + (powerups || 0) * B.plausiblePerPowerup + B.plausibleSlack;
 }
-async function submitBest(dist, eq, powerups) {
-  if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return;
-  if (!plausibleDistance(dist, eq, powerups)) { toast('That distance looks impossible for your gear, so it was not posted.'); return; }
+async function submitBest(dist, eq, powerups, quiet) {
+  if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite) return false;
+  if (!plausibleDistance(dist, eq, powerups)) { if (!quiet) toast('That distance looks impossible for your gear, so it was not posted.'); return false; }
   const r = await ACCOUNT.api.post(ACCOUNT.code, ACCOUNT.token, 'dist', Math.round(dist));
-  if (r.error) noteWriteError(r);
+  if (r.error) { if (!quiet) noteWriteError(r); return false; }
+  SAVE.postedBest = Math.max(SAVE.postedBest || 0, Math.round(dist)); persist();
+  return true;
+}
+// A personal best that never reached the board (offline, logged out, or refused by an older check) is posted when the
+// boards load. We no longer know that flight's gear, so it's checked against the gear equipped for Fly Infinitely now.
+async function postMissingBest() {
+  if (!ACCOUNT.code || !SAVE || !SAVE.endless || !(SAVE.bestEndless > (SAVE.postedBest || 0))) return false;
+  return submitBest(SAVE.bestEndless, SAVE.endless.equipped, CONFIG.leaderboard.maxPowerupsForOldBest, true);
 }
 async function submitFastest(sec) {
   if (!ACCOUNT.api || !ACCOUNT.code || PRACTICE || !ACCOUNT.canWrite || !(sec > 0)) return;
@@ -1380,6 +1400,7 @@ async function submitFastest(sec) {
 }
 async function loadBoards() {
   if (!ACCOUNT.api) return;
+  try { await postMissingBest(); } catch (err) { }
   try { const r = await ACCOUNT.api.boards(); ACCOUNT.board = r.dist; ACCOUNT.fastBoard = r.fast; }
   catch (e) { ACCOUNT.board = ACCOUNT.board || []; ACCOUNT.fastBoard = ACCOUNT.fastBoard || []; }
   if (screen === 'menu') renderBoard();
