@@ -11,17 +11,18 @@ It's inspired by *Learn to Fly* (Light Bringer Games, 2009). The whole game is o
 
 ### Controls
 
-| Key | What it does |
-|---|---|
-| **↑ / ↓** | Tilt the pig's nose up or down |
-| **Space** (hold) | Fire rockets, once you've bought them |
-| **Enter** | Launch, from the shop |
-| **Esc** | End the current flight early (or click **End run**) |
-| Mouse | Menus and the shop |
+| Action | Keyboard | Phone / touch |
+|---|---|---|
+| Tilt the pig's nose | **↑ / ↓** | Slide your finger up / down |
+| Fire rockets (once bought) | Hold **Space** | **Double-tap** (double-tap again to stop) |
+| Launch | **Enter**, or **Launch!** | Tap **Launch!** |
+| End the flight early | **Esc**, or **End run** | Tap **End run** |
+
+The **❓ Help** button (main menu and shop) shows all the instructions in the game.
 
 ### How it works
 
-1. **Name your pig.** If you leave the name blank, it's called Snowball.
+1. **Name your pig.** If you leave the name blank, it's named after your account code, or Snowball if you're not logged in.
 2. **Launch.** The seesaw flings the pig. There's nothing to do at launch.
 3. **Fly.** Tilting only redirects your speed and never adds any, so your gear does most of the work.
 4. **Land on the hill.** Fall short or overshoot and you splash into the lake. Stop dead center between the flags for the biggest payout.

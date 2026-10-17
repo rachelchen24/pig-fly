@@ -27,6 +27,7 @@
   h2 { margin: 0 0 8px; }
   .menu { display: flex; flex-direction: column; gap: 12px; align-items: center; }
   .menu button { min-width: 260px; }
+  .menu .row button { min-width: 150px; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .muted { opacity: 0.7; font-size: 13px; }
   /* hangar / shop */
@@ -36,8 +37,8 @@
   .pigcard { position: relative; flex: none; }
   .pigtag { position: absolute; left: 8px; bottom: 6px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--pinkd); color: #fff; font-weight: bold; font-size: 13px; padding: 2px 10px; border-radius: 999px; }
   #shopPreview { width: 230px; height: 120px; background: linear-gradient(#bfe6fb, #e8f6fd); border-radius: 12px; flex: none; }
-  .tiergrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 18px 22px; }
-  .tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px; align-items: start; }
+  .tiergrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(560px, 100%), 1fr)); gap: 18px 22px; }
+  .tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 12px; align-items: start; }
   #shop .head { padding: 12px 16px 10px; border-bottom: 2px dashed #ead9c4; }
   #shop .coins { font-size: 28px; font-weight: bold; color: #a87900; }
   #shop .tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 2px dashed #ead9c4; }
@@ -79,7 +80,7 @@
   .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 6px; background: #e8f5e9; color: #2e7d32; font-weight: bold; }
   /* overlays */
   .modalbg { position: absolute; inset: 0; background: rgba(40,20,10,0.35); display: flex; align-items: center; justify-content: center; }
-  .results { min-width: 380px; text-align: center; }
+  .results { min-width: min(380px, calc(100vw - 32px)); text-align: center; }
   .results .big-n { font-size: 46px; font-weight: bold; }
   .results .line { margin: 4px 0; }
   .tutor { position: absolute; max-width: 320px; background: #fffbe6; border: 3px solid #f5b800; border-radius: 14px; padding: 10px 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 15px; z-index: 50; }
@@ -102,6 +103,46 @@
   .lb { width: min(380px, calc(100vw - 32px)); max-height: 40vh; overflow-y: auto; }
   .endrun { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; padding: 8px 14px; font-size: 15px; opacity: 0.9; }
   .endrun .key { margin-left: 4px; }
+  /* help screen */
+  .help { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; font-size: 15px; line-height: 1.45; }
+  .help .helphead { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: -18px; background: var(--paper); padding: 4px 0 6px; }
+  .help .helphead h2 { margin: 0; }
+  .help h3 { margin: 14px 0 4px; color: var(--pinkd); font-size: 17px; }
+  .help ul { margin: 0; padding-left: 20px; }
+  .help li { margin: 3px 0; }
+  .helpscroll { overflow-x: auto; }
+  .helpctl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .helpctl th, .helpctl td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #ead9c4; vertical-align: top; }
+  .helpctl th { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+  /* phones */
+  @media (max-width: 640px) {
+    h1 { font-size: 40px; line-height: 1.15; margin-bottom: 8px; }
+    .menu .row { flex-direction: column; }
+    .menu button { min-width: 0; width: min(300px, calc(100vw - 32px)); }
+    #shop { top: 6px; bottom: 6px; width: calc(100% - 12px); }
+    #shop .head { flex-wrap: wrap; gap: 10px; padding: 8px 10px; }
+    #shopPreview { width: 120px; height: 63px; }
+    .pigtag { font-size: 11px; bottom: 3px; left: 4px; padding: 1px 7px; }
+    #shop .coins { font-size: 22px; }
+    #shop .tabs { padding: 6px 8px; gap: 5px; }
+    #shop .tabs button { padding: 6px 10px; font-size: 14px; }
+    #shop .body { padding: 10px; font-size: 14px; }
+    #shop .foot { padding: 8px; flex-wrap: wrap; }
+    .tier { padding: 8px; }
+    .tbadge { font-size: 14px; padding: 2px 9px; }
+    .opts { gap: 5px; }
+    .opt { padding: 5px 3px; font-size: 12px; border-radius: 10px; }
+    .opt canvas { height: 62px; }
+    .opt .nm { font-size: 13px; }
+    .opt .ds { display: none; }
+    .pips { font-size: 10px; }
+    .pips b { width: 34px; }
+    .pip { width: 6px; height: 6px; }
+    .opt button { padding: 4px 8px; font-size: 12px; }
+    .track .ti { font-size: 14px; padding: 6px; flex-wrap: wrap; }
+    .endrun { padding: 6px 10px; font-size: 13px; }
+    .endrun .key { display: none; }
+  }
   /* main menu: leaderboards on both sides, menu in the middle; stacked under the menu when narrow */
   .menuwrap { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; justify-items: center; gap: 24px; padding: 16px; overflow-y: auto; }
   .menuwrap .menumid { text-align: center; }
@@ -117,7 +158,7 @@
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
+<canvas id="game" style="touch-action:none"></canvas>
 <div id="ui"></div>
 <script id="core">
 /* =====================================================================
@@ -243,6 +284,14 @@ const CONFIG = {
     { hillX: 638, hillWidth: 137, hillHeight: 12, slope: 22, obstacles: [{ x: 103, top: 57, width: 10, strength: 1, type: 'tree' }, { x: 238, top: 42, width: 16, strength: 2, type: 'farmhouse' }, { x: 381, top: 35, width: 30, strength: 1, type: 'hill' }] },
     { hillX: 982, hillWidth: 189, hillHeight: 14, slope: 25, obstacles: [{ x: 88, top: 76, width: 16, strength: 2, type: 'farmhouse' }, { x: 198, top: 58, width: 10, strength: 1, type: 'tree' }, { x: 331, top: 53, width: 30, strength: 1, type: 'hill' }, { x: 466, top: 47, width: 16, strength: 2, type: 'farmhouse' }] },
   ],
+
+  // ---------- TOUCH (phones/tablets; also works with a mouse) ----------
+  touch: {
+    deadZonePx: 10,              // [default] finger movement ignored near where it touched down
+    fullTiltPx: 70,              // [default] slide this far up/down (past the dead zone) for full tilt, same as holding an arrow key
+    doubleTapMs: 320,            // [default] two taps within this long = double-tap (toggles the rocket)
+    doubleTapSlopPx: 40,         // [default] ...and within this distance of each other
+  },
 
   // ---------- PIG ----------
   pig: { defaultName: 'Snowball', nameMaxLength: 16 }, // [user request] players name their pig at Start New Game; blank = their 4-character account code when logged in, else Snowball
@@ -429,7 +478,8 @@ function stepFlight(F, input, dt) {
     // so skimming the water isn't a big skill trick. Over the landing hill it just glides in.
     if (P.autoFlareHeight > 0 && F.vy < 0 && F.y < P.autoFlareHeight && hillTerrainY(F.course.hill, F.x) < 0) aAuto = W.stall - P.autoStallMarginDeg * D2R;
   }
-  const inp = (input.up ? 1 : 0) - (input.down ? 1 : 0);
+  // tilt: -1..1 from a finger slide (analog); otherwise the arrow keys
+  const inp = input.tilt != null ? clamp(input.tilt, -1, 1) : (input.up ? 1 : 0) - (input.down ? 1 : 0);
   const fire = !!input.fire && F.fuel > 0 && !!L.rocket;
   F.firing = fire;
   const stab = P.bodyStability + (W ? W.stability : 0);
@@ -1490,6 +1540,28 @@ let W = 0, H = 0, DPR = 1;
 function resize() { DPR = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; }
 addEventListener('resize', resize); resize();
 
+/* ---------- touch flying: slide a finger up/down to tilt, double-tap to toggle the rocket ---------- */
+const TOUCH_UI = matchMedia('(pointer: coarse)').matches;
+const touch = { id: null, x0: 0, y0: 0, x: 0, y: 0, tilt: 0, fire: false, lastTap: 0, lastX: 0, lastY: 0 };
+function resetTouch() { touch.id = null; touch.tilt = 0; touch.fire = false; touch.lastTap = 0; }
+cv.addEventListener('pointerdown', (e) => {
+  if (screen !== 'flight' && screen !== 'launching') return;
+  e.preventDefault();
+  const T = CONFIG.touch, now = performance.now();
+  if (now - touch.lastTap < T.doubleTapMs && Math.hypot(e.clientX - touch.lastX, e.clientY - touch.lastY) < T.doubleTapSlopPx) { touch.fire = !touch.fire; touch.lastTap = 0; }
+  else { touch.lastTap = now; touch.lastX = e.clientX; touch.lastY = e.clientY; }
+  touch.id = e.pointerId; touch.x0 = touch.x = e.clientX; touch.y0 = touch.y = e.clientY; touch.tilt = 0;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { }
+});
+cv.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== touch.id) return;
+  const T = CONFIG.touch; touch.x = e.clientX; touch.y = e.clientY;
+  const dy = touch.y0 - touch.y; // up = positive
+  touch.tilt = Math.abs(dy) <= T.deadZonePx ? 0 : clamp((dy - Math.sign(dy) * T.deadZonePx) / T.fullTiltPx, -1, 1);
+});
+const touchUp = (e) => { if (e.pointerId === touch.id) { touch.id = null; touch.tilt = 0; } };
+cv.addEventListener('pointerup', touchUp); cv.addEventListener('pointercancel', touchUp);
+
 /* ---------- small DOM helper ---------- */
 function el(tag, attrs, ...kids) {
   const e = document.createElement(tag);
@@ -1636,7 +1708,7 @@ function showMenu() {
   screen = 'menu'; clearUI();
   const s = SAVE;
   const box = el('div', { class: 'menu menumid' });
-  box.append(el('h1', null, 'When Pigs Fly'), el('div', { style: 'color:#fff;font-weight:bold;text-shadow:0 2px 0 rgba(0,0,0,.25);margin-bottom:14px' }, 'Launch the pig. Buy gear. Land on the hill.'));
+  box.append(el('h1', null, 'When Pigs Fly'), el('div', { style: 'color:#fff;font-weight:bold;text-shadow:0 2px 0 rgba(0,0,0,.3),0 0 10px rgba(60,30,40,.55);margin-bottom:14px' }, 'Launch the pig. Buy gear. Land on the hill.'));
   const runInProgress = s && s.run && s.run.started && !s.run.completed;
   box.append(el('button', { class: 'big go', id: 'btn-new', on: { click: startNewGame } }, 'Start New Game'));
   if (s && !s.beatGame && runInProgress) box.append(el('button', { class: 'big', id: 'btn-continue', on: { click: () => enterHangar('level') } }, 'Continue Game'));
@@ -1646,7 +1718,8 @@ function showMenu() {
   }
   box.append(el('div', { class: 'row', style: 'justify-content:center' },
     ACCOUNT.code ? el('button', { id: 'btn-logout', on: { click: logOut } }, 'Log Out') : el('button', { id: 'btn-login', on: { click: () => showAccountModal('login') } }, 'Log In / Sign Up'),
-    el('button', { on: { click: startPractice } }, 'Tutorial')));
+    el('button', { on: { click: startPractice } }, 'Tutorial'),
+    el('button', { id: 'btn-help', on: { click: showHelp } }, '❓ Help')));
   if (ACCOUNT.code) box.append(el('div', { class: 'who' }, 'Logged in as ', el('b', null, ACCOUNT.code), ' · progress saves to your account'));
   // both leaderboards, one on each side of the menu (stacked under it on narrow screens)
   const boardCard = (kind, title) => el('div', { class: 'card lb', id: 'board-' + kind }, el('h2', null, title), el('div', { class: 'lbbody' }));
@@ -1691,6 +1764,48 @@ function askPigName(done) {
   UI.append(bg);
   try { drawShopPreview(prev, { wings: null, rocket: null, length: 0, height: 0, launchRig: 0, fuel: 0, payload: 0 }); } catch (e) { }
   setTimeout(() => input.focus(), 0);
+}
+function showHelp() {
+  const old = document.getElementById('help'); if (old) { old.remove(); return; }
+  const U = CONFIG.unlocks, E = CONFIG.economy;
+  const bg = el('div', { class: 'modalbg', id: 'help', on: { click: (e) => { if (e.target === bg) bg.remove(); } } });
+  const card = el('div', { class: 'card help' });
+  const sec = (title, ...items) => card.append(el('h3', null, title), el('ul', null, ...items.map(t => el('li', { html: t }))));
+  card.append(el('div', { class: 'helphead' }, el('h2', null, 'How to play'), el('button', { id: 'btn-help-close', on: { click: () => bg.remove() } }, '✕ Close')));
+  card.append(el('p', { html: 'Fling your pig off the seesaw and land it on the <b>hilltop</b> at the end of each level. Every level’s hill is farther away. Beat all 10 levels to unlock <b>Fly Infinitely</b>.' }));
+  const ctl = el('table', { class: 'helpctl' }, el('tr', null, el('th', null, ''), el('th', null, 'Keyboard'), el('th', null, 'Phone / touch')));
+  for (const [what, key, tch] of [
+    ['Tilt the nose', '↑ / ↓', 'Slide your finger up / down'],
+    ['Fire rockets', 'Hold Space', 'Double-tap (again to stop)'],
+    ['Launch', 'Enter, or Launch!', 'Tap Launch!'],
+    ['End the flight early', 'Esc, or End run', 'Tap End run'],
+  ]) ctl.append(el('tr', null, el('td', null, el('b', null, what)), el('td', null, key), el('td', null, tch)));
+  card.append(el('h3', null, 'Controls'), el('div', { class: 'helpscroll' }, ctl));
+  sec('Flying',
+    'Tilting only <b>redirects</b> your speed. It never adds any, so your gear does most of the work.',
+    'Pull the nose up too far and you <b>stall</b>: the wings stop lifting and the pig drops. Watch for “STALL!”.',
+    'Rockets push the way the nose points. <b>Tilt up a little while firing</b> to stay in the air longer. Fuel is free and refills every flight; the tank decides how long you can burn.');
+  sec('Landing',
+    'Land on the hilltop to pass. Fall short or fly past it and you splash into the lake.',
+    'Coming down too steeply bounces you; touching down too fast skids you off the far edge.',
+    'Stop <b>between the two flags</b>. Dead center pays the most: a level’s first clear pays up to 3 upgrades’ worth of coins.',
+    `Fly past the hill and the run ends after ${CONFIG.physics.overshootEndSec} seconds.`);
+  sec('Shop and gear',
+    `New gear unlocks as you go: Wings (level ${U.wings}), Seesaw (${U.seesaw}), Launch Rig (${U.launchRig}), Rockets (${U.rockets}), Powerups (${U.powerups}), Payload and obstacles (${U.payload}).`,
+    'Wings and rockets have <b>3 options per tier</b>, and only one is right for the level: one comes up short, one overshoots.',
+    `Picked wrong? Sell it for ${Math.round(E.sellBack * 100)}% back and try another. You can sell anything you own, and re-equip anything you still own.`,
+    'Tiers are bought in order, one more opening each level you pass. Seesaw Length and Height are separate half-price upgrades.');
+  sec('Coins',
+    'Each level pays once, on its first clear. Replays only earn the few coins you grab in the air.',
+    `Gust clouds (powerups) are bought before a flight and appear at a random spot before the hill. Fly into one for a bit of speed, height and a few coins. Each costs double the last, starting at ${CONFIG.powerups.firstCost}.`);
+  sec('Obstacles (from level ' + U.payload + ')',
+    'Trees, farmhouses and hills block the way. Ram through them with a <b>payload</b> at least as strong as the obstacle (the arrow at the screen edge shows its strength: green means you can smash it), or fly over them, which takes more fuel.');
+  sec('Fly Infinitely',
+    `Unlocked by beating level 10. No hill, just distance. Markers every ${CONFIG.endless.milestoneEvery} m pay once each, and your best distance goes on the leaderboard.`);
+  sec('Accounts and leaderboards',
+    'Log in with a 4-character code and a PIN to save your progress across devices and get on the leaderboards. Write down the recovery code you get at sign-up: it’s the only way to reset your PIN.',
+    'Leave your pig’s name blank and it’s named after your code (or Snowball if you’re not logged in).');
+  bg.append(card); UI.append(bg);
 }
 function startPractice() {
   PRACTICE = SAVE || freshSave();
@@ -1742,7 +1857,7 @@ function renderShop() {
   const body = el('div', { class: 'body' });
   if (!shopTab) body.append(el('p', null, isTabUnlocked('wings') ? 'Pick a category above.' : 'Nothing to buy yet. Pass level 1 to unlock wings!'));
   else if (shopTab === 'wings') body.append(optCategory('wings'));
-  else if (shopTab === 'rockets') { body.append(el('p', { class: 'muted', style: 'margin:0 0 6px' }, 'Hold SPACE to fire. Rockets push the way the nose points. Fuel is free and refills every flight.')); body.append(optCategory('rocket')); body.append(el('div', { class: 'tracks', style: 'margin-top:8px' }, linTrack('fuel'))); }
+  else if (shopTab === 'rockets') { body.append(el('p', { class: 'muted', style: 'margin:0 0 6px' }, (TOUCH_UI ? 'Double-tap to fire (again to stop).' : 'Hold SPACE to fire.') + ' Rockets push the way the nose points. Fuel is free and refills every flight.')); body.append(optCategory('rocket')); body.append(el('div', { class: 'tracks', style: 'margin-top:8px' }, linTrack('fuel'))); }
   else if (shopTab === 'seesaw') { body.append(el('p', { class: 'muted', style: 'margin:0 0 6px' }, 'Length and Height are separate. Each costs half an upgrade.')); body.append(el('div', { class: 'tracks' }, linTrack('length'), linTrack('height'))); }
   else if (shopTab === 'launchRig') body.append(el('div', { class: 'tracks' }, linTrack('launchRig')));
   else if (shopTab === 'payload') { body.append(el('p', { class: 'muted', style: 'margin:0 0 6px' }, 'Payload smashes obstacles whose number is at or below its strength. Ramming costs no extra fuel.')); body.append(el('div', { class: 'tracks' }, linTrack('payload'))); }
@@ -1750,7 +1865,7 @@ function renderShop() {
   shop.append(body);
   // footer
   const foot = el('div', { class: 'foot' });
-  foot.append(el('button', { on: { click: showMenu } }, '☰ Menu'));
+  foot.append(el('button', { on: { click: showMenu } }, '☰ Menu'), el('button', { id: 'btn-help-shop', on: { click: showHelp } }, '❓ Help'));
   if (DEV) foot.append(el('button', { on: { click: () => { prof().money += 1000; persist(); renderShop(); } } }, '+1000'),
     mode === 'level' ? el('button', { on: { click: () => { SAVE.run.level = 10; SAVE.run.selected = 10; persist(); renderShop(); } } }, 'All lvls') : null);
   foot.append(el('div', { style: 'flex:1' }));
@@ -1895,6 +2010,7 @@ function endlessSpawner(F, C) {
 }
 let launchEq = null;
 function startLaunch() {
+  resetTouch();
   launchEq = activeEquipped();
   const loadout = makeLoadout(launchEq);
   flightLevel = curLevel();
@@ -1922,7 +2038,8 @@ let acc = 0;
 function updateFlight(dt) {
   const step = 1 / CONFIG.physics.stepsPerSecond;
   acc += Math.min(dt, 0.1);
-  const input = { up: !!keys.ArrowUp, down: !!keys.ArrowDown, fire: !!keys.Space };
+  if (touch.fire && flight.fuel <= 0) touch.fire = false; // tank empty: the double-tap toggle switches itself off
+  const input = { up: !!keys.ArrowUp, down: !!keys.ArrowDown, fire: !!keys.Space || touch.fire, tilt: touch.id != null && touch.tilt ? touch.tilt : null };
   while (acc >= step) {
     acc -= step;
     stepFlight(flight, input, step);
@@ -2102,7 +2219,7 @@ const FEATURE_TIPS = {
   wings: ['wings', '<b>Wings unlocked!</b> Wings give lift, which is what carries you <b>forward</b>. Each tier has 3 very different wings and only one is right for this level: one comes up short, one overshoots. Picked wrong? Sell it (60% back) and try another.'],
   seesaw: ['seesaw', '<b>Seesaw unlocked!</b> <b>Length</b> and <b>Height</b> are separate upgrades, each half the price of a normal one. Together they give a stronger launch.'],
   launchRig: ['launchRig', '<b>Launch rig unlocked!</b> The pig rides in it on the seesaw for extra launch speed.'],
-  rockets: ['rockets', '<b>Rockets unlocked!</b> Hold <span class="key">Space</span> to fire. Rockets push the way the <b>nose points</b>, so aim with <span class="key">↑</span> <span class="key">↓</span>. Tilt up a little while firing to stay in the air longer. Fuel is free and refills every flight. The tank decides how long you can burn.'],
+  rockets: ['rockets', '<b>Rockets unlocked!</b> ' + (TOUCH_UI ? '<b>Double-tap</b> to fire (double-tap again to stop).' : 'Hold <span class="key">Space</span> to fire.') + ' Rockets push the way the <b>nose points</b>, so aim with ' + (TOUCH_UI ? 'a finger slide.' : '<span class="key">↑</span> <span class="key">↓</span>.') + ' Tilt up a little while firing to stay in the air longer. Fuel is free and refills every flight. The tank decides how long you can burn.'],
   powerups: ['powerups', '<b>Powerups unlocked!</b> Buy gust clouds before a flight. Each one appears at a random spot along your route. Fly into it to catch it! Each costs double the last.'],
 };
 const OBSTACLE_TIP = '<b>Obstacles ahead!</b> Trees, farmhouses and hills now stand in the way. The number on each one is the payload strength needed to smash it.<br><br>Two ways past:<br>• <b>Ram through</b> with payload. It takes <b>no more fuel</b> than normal flying.<br>• <b>Fly over</b> it. Possible, but it takes the arrow keys and <b>a lot more fuel</b>.';
@@ -2145,8 +2262,8 @@ function tutEvent(ev, arg) {
 function tutFlight(dt) {
   if (!TUT_ON() || tutFlightStep === 0) return;
   tutFlightT += dt;
-  if (tutFlightStep === 1) { if (!tutorEl) showTutor('Press <span class="key">↑</span> to tilt up.', null, { top: 70 }); if (keys.ArrowUp || tutFlightT > 2.5) { tutFlightStep = 2; tutFlightT = 0; hideTutor(); } }
-  else if (tutFlightStep === 2) { if (!tutorEl) showTutor('Press <span class="key">↓</span> to tilt down.', null, { top: 70 }); if (keys.ArrowDown || tutFlightT > 2.5) { tutFlightStep = 3; tutFlightT = 0; hideTutor(); } }
+  if (tutFlightStep === 1) { if (!tutorEl) showTutor(TOUCH_UI ? 'Slide your finger <b>up</b> to tilt up.' : 'Press <span class="key">↑</span> to tilt up.', null, { top: 70 }); if (keys.ArrowUp || touch.tilt > 0.3 || tutFlightT > 2.5) { tutFlightStep = 2; tutFlightT = 0; hideTutor(); } }
+  else if (tutFlightStep === 2) { if (!tutorEl) showTutor(TOUCH_UI ? 'Slide your finger <b>down</b> to tilt down.' : 'Press <span class="key">↓</span> to tilt down.', null, { top: 70 }); if (keys.ArrowDown || touch.tilt < -0.3 || tutFlightT > 2.5) { tutFlightStep = 3; tutFlightT = 0; hideTutor(); } }
   else if (tutFlightStep === 3) { if (!tutorEl) showTutor('Tilting only <b>redirects</b> your speed. It never adds any. Your gear does most of the work. Land on the hilltop and stop <b>between the two flags</b>. Stopping dead center pays the most!', null, { top: 70 }); if (tutFlightT > 3.5) { tutFlightStep = 0; hideTutor(); } }
 }
 function tutResults(res) {
@@ -2163,6 +2280,7 @@ addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'Space', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { if (screen === 'flight' || screen === 'launching') e.preventDefault(); }
   if (e.code === 'Space' && (screen === 'flight' || screen === 'launching')) e.preventDefault();
   keys[e.code] = true;
+  if (e.code === 'Escape' && document.getElementById('help')) { document.getElementById('help').remove(); return; }
   if (e.code === 'Escape' && screen === 'flight') endRun();
   if (e.code === 'Enter' && screen === 'hangar' && !document.querySelector('.modalbg') && document.activeElement.tagName !== 'SELECT') startLaunch();
 });
@@ -2308,7 +2426,15 @@ function drawHUD() {
   }
   // controls hint
   g.font = '13px sans-serif'; g.fillStyle = 'rgba(255,255,255,0.95)';
-  g.fillText((F.L.rocket ? '↑ ↓ tilt the nose    SPACE fire rockets' : '↑ ↓ tilt the nose') + '    ESC end run', 16, H - 16);
+  g.fillText(TOUCH_UI ? (F.L.rocket ? 'slide ↑↓ to tilt    double-tap: rocket on/off' : 'slide your finger ↑↓ to tilt')
+    : (F.L.rocket ? '↑ ↓ tilt the nose    SPACE fire rockets' : '↑ ↓ tilt the nose') + '    ESC end run', 16, H - 16);
+  if (touch.id != null) { // where the finger went down, and how far it has slid
+    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 3;
+    g.beginPath(); g.arc(touch.x0, touch.y0, CONFIG.touch.deadZonePx + 6, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(touch.x0, touch.y0); g.lineTo(touch.x0, touch.y); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.85)'; g.beginPath(); g.arc(touch.x0, touch.y, 9, 0, Math.PI * 2); g.fill();
+  }
+  if (touch.fire && F.L.rocket && F.fuel > 0) { g.fillStyle = '#ff7043'; g.font = 'bold 13px sans-serif'; g.fillText('ROCKET ON · double-tap to stop', 24, F.L.rocket ? 150 : 128); }
   // hill indicator
   if (course && course.hill) {
     const hx = (course.hill.x - cam.x) * cam.ppm + W * ANCHOR_X;

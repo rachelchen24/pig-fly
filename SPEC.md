@@ -132,6 +132,8 @@ Based on the Learn to Fly series shops:
 - **Fuel tank** (capacity, i.e. how long you can burn): **cheap**, linear. Tiers are named by **actual quantity in gallons**: starts at 1 gallon, then 3, 5, 10, 15, 18, 20 (see Gear catalog).
 - **Together they cost about one normal upgrade** *(e.g. rocket ~75%, fuel tank ~25%)*.
 - **Rockets push in the direction the pig is pointing.** This is where the arrow keys matter most: aim the nose to aim the thrust. With bad wings the pig ends up nose-up, so the rocket drives it straight up.
+- **Phones and touch screens.** Slide a finger up/down to tilt the nose (the farther you slide, the harder it tilts). **Double-tap** turns the rocket on, and double-tap again turns it off (it also stops when the tank is empty). The menus and shop fit a phone screen.
+- **Help button** on the main menu and in the shop: one screen with every instruction (controls for keyboard and touch, flying, landing, shop, coins, obstacles, Fly Infinitely, accounts).
 - **End run.** During a flight, an **End run** button (top right, or the **Esc** key) stops the flight right away. In level mode it counts as a fail (no payout); in Fly Infinitely the distance so far counts (milestones, personal best, leaderboard).
 - **Firing the rocket keeps you in the air longer, never shorter.** While it fires, the nose can't tip past the wings' stall angle (the thrust keeps air flowing over them), so tilting up while firing climbs instead of stalling and dropping. Aiming down still dives.
 - **Hold Space to fire the rockets.** Nothing fires on its own: if you never press Space, you sink with a full tank.
